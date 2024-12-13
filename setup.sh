@@ -58,7 +58,7 @@ main() {
   mkdir -p "$HOME/.config/OCR4Linux"
 
   # Copy the files to the config directory.
-  cp -r * "$HOME/.config/OCR4Linux"
+  cp -r ./* "$HOME/.config/OCR4Linux"
 }
 
 main

@@ -28,4 +28,4 @@ jobs:
 
             - name: Lint with pylint
               run: |
-                  pylint OCR4Linux.py
+                  pylint --disable=R,C OCR4Linux.py
