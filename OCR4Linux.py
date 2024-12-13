@@ -50,7 +50,7 @@ class TesseractConfig:
 
         # Group text by line
         lines = {}
-        for i, level in enumerate(data['level']):
+        for i, _ in enumerate(data['level']):
             if int(data['conf'][i]) > 60:  # Filter low confidence results
                 page_num = data['page_num'][i]
                 block_num = data['block_num'][i]
@@ -100,7 +100,7 @@ class TesseractConfig:
                 return 0
 
         except Exception as e:
-            print(f"Error processing image: {str(e)}")
+            print(f"Error processing image because: {str(e)}")
             return 1
 
 
