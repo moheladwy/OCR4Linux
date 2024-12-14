@@ -8,10 +8,10 @@
 #     The script uses wl-copy and cliphist for Wayland and xclip for X11 to copy the extracted text to the clipboard.
 #     The script uses a python script to extract text from the image.
 # ========================================================================================================================
-from PIL import Image
-import pytesseract
 import sys
 import os
+from PIL import Image
+import pytesseract
 import cv2
 import numpy as np
 
