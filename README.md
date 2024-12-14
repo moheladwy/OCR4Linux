@@ -47,10 +47,28 @@ The following packages are required to be installed:
 1. Run the main script to take a screenshot, extract text, and copy it to the clipboard:
 
     ```sh
+    chmod +x OCR4Linux.sh
     ./OCR4Linux.sh
     ```
 
 2. The script will take a screenshot of the selected area, extract the text from the image, and copy it to the clipboard.
+
+## Tips
+
+-   You can customize the script to suit your needs by changing the screenshot tool, text extraction method, or clipboard manager.
+-   You can create a keyboard shortcut to run the script for easy access.
+    ### Example for `Hyprland` users:
+    -   put the following lines in your `hyprland.conf` file:
+        ```
+        $OCR4Linux = ~/.config/OCR4Linux/OCR4Linux.sh
+        bind = $mainMod SHIFT, E, exec, $OCR4Linux # OCR4Linux script
+        ```
+    ### Example for `dwm` users:
+    -   put the following lines in your `config.h` file:
+        ```
+        static const char *ocr4linux[] = { "sh", "-c", "~/.config/OCR4Linux/OCR4Linux.sh", NULL };
+        { MODKEY | ShiftMask, XK_e, spawn, {.v = ocr4linux } }, // OCR4Linux script
+        ```
 
 ## Files
 
