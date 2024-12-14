@@ -1,7 +1,5 @@
 # OCR4Linux
 
-## Description
-
 OCR4Linux is a tool that allows you to take a screenshot of a selected area, extract the text from the image, and copy it to the clipboard. It supports both Wayland and X11 sessions and uses various tools to achieve its functionality.
 Note: This script is currently only made for Arch Linux. It may work on other arch-based distributions, but it has not been tested yet.
 
