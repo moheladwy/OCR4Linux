@@ -1,0 +1,7 @@
+[MESSAGES CONTROL]
+disable=
+    C0114,  # Missing module docstring
+    C0115,  # Missing class docstring
+    E1101,  # No member
+    W0612,  # Unused variable
+    W0718   # Broad exception caught
