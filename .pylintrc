@@ -2,6 +2,9 @@
 disable=
     C0114,  # Missing module docstring
     C0115,  # Missing class docstring
+    C0301,  # Line too long
+    C0103,  # Invalid variable name
+    C0411,  # Wrong import order
     E1101,  # No member
     W0612,  # Unused variable
     W0718   # Broad exception caught
