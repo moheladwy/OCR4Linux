@@ -31,7 +31,7 @@ The following packages are required to be installed:
 1. Clone the repository:
 
     ```sh
-    git clone https://github.com/yourusername/OCR4Linux.git
+    git clone https://github.com/moheladwy/OCR4Linux.git
     cd OCR4Linux
     ```
 
