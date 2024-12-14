@@ -28,7 +28,7 @@ sys_requirements=(
     python-opencv
 )
 wayland_session_apps=(
-    grimblast
+    grimblast-git
     wl-clipboard
     cliphist
     rofi-wayland
@@ -39,26 +39,41 @@ x11_session_apps=(
     rofi
 )
 
-install_requirements() {
-    sudo pacman -S --noconfirm --needed "${sys_requirements[@]}"
-
-    if [ "$XDG_SESSION_TYPE" = "wayland" ]; then
-        sudo pacman -S --noconfirm --needed "${wayland_session_apps[@]}"
-    else
-        sudo pacman -S --noconfirm --needed "${x11_session_apps[@]}"
+# Check if yay is installed.
+check_yay() {
+    if ! command -v yay &> /dev/null; then
+        read -p "yay is not installed. Do you want to install yay? (y/n): " choice
+        if [ "$choice" = "y" ]; then
+            sudo pacman -S --needed --noconfirm git base-devel
+            git clone https://aur.archlinux.org/yay.git
+            cd yay
+            makepkg -si --noconfirm
+        else
+            echo "Please install yay first!"
+            return 1
+        fi
     fi
 }
 
+# Install the required packages.
+install_requirements() {
+    yay -S --noconfirm --needed "${sys_requirements[@]}"
 
+    if [ "$XDG_SESSION_TYPE" = "wayland" ]; then
+        yay -S --noconfirm --needed "${wayland_session_apps[@]}"
+    else
+        yay -S --noconfirm --needed "${x11_session_apps[@]}"
+    fi
+}
+
+# Main function.
 main() {
-  # Install the required packages.
-  install_requirements
+    check_yay
+    install_requirements
 
-  # Create the config directory if it does not exist.
-  mkdir -p "$HOME/.config/OCR4Linux"
-
-  # Copy the files to the config directory.
-  cp -r ./* "$HOME/.config/OCR4Linux"
+    # Copy the script to the user's home directory.
+    mkdir -p "$HOME/.config/OCR4Linux"
+    cp -r ./* "$HOME/.config/OCR4Linux"
 }
 
 main
