@@ -42,11 +42,11 @@ x11_session_apps=(
 # Check if yay is installed.
 check_yay() {
     if ! command -v yay &> /dev/null; then
-        read -p "yay is not installed. Do you want to install yay? (y/n): " choice
+        read -r -p "yay is not installed. Do you want to install yay? (y/n): " choice
         if [ "$choice" = "y" ]; then
             sudo pacman -S --needed --noconfirm git base-devel
             git clone https://aur.archlinux.org/yay.git
-            cd yay
+            cd yay || exit
             makepkg -si --noconfirm
         else
             echo "Please install yay first!"
