@@ -2,18 +2,30 @@
 # ========================================================================================================================
 # Author:
 #     Mohamed Hussein Al-Adawy
+# Version: 1.1.0
 # Description:
-#     This script takes a screenshot of a selected area, extracts the text from the image, and copies it to the clipboard.
-#     The script uses grimblast for Wayland and scrot for X11 to take screenshots.
-#     The script uses tesseract to extract text from the image.
-#     The script uses wl-copy and cliphist for Wayland and xclip for X11 to copy the extracted text to the clipboard.
-#     The script uses a python script to extract text from the image.
-#     The script requires the following packages to be installed:
-#         - python
-#         - tesseract
-#         - grimblast or scrot
-#         - wl-clipboard or xclip
-#         - cliphist
+#     This setup script installs and configures OCR4Linux and its dependencies.
+#     It handles the installation of:
+#       1. System requirements (tesseract, python packages)
+#       2. Session-specific tools:
+#          - Wayland: grimblast, wl-clipboard, cliphist, rofi-wayland
+#          - X11: xclip, scrot, rofi
+#
+# Features:
+#     - Automatic detection and installation of AUR helper (yay)
+#     - Session-aware installation (Wayland/X11)
+#     - Configures necessary Python dependencies
+#     - Sets up required OCR language packs
+#
+# Requirements:
+#     - Arch Linux or Arch-based distribution
+#     - Internet connection for package downloads
+#     - sudo privileges for package installation
+#
+# Usage:
+#     chmod +x setup.sh
+#     ./setup.sh
+#     Follow the prompts to install dependencies
 # ========================================================================================================================
 
 # Define the required packages.
@@ -41,7 +53,7 @@ x11_session_apps=(
 
 # Check if yay is installed.
 check_yay() {
-    if ! command -v yay &> /dev/null; then
+    if ! command -v yay &>/dev/null; then
         read -r -p "yay is not installed. Do you want to install yay? (y/n): " choice
         if [ "$choice" = "y" ]; then
             sudo pacman -S --needed --noconfirm git base-devel
