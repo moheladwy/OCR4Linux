@@ -1,13 +1,39 @@
 # ========================================================================================================================
 # Author:
 #     Mohamed Hussein Al-Adawy
+# Version: 1.1.0
 # Description:
-#     This script takes a screenshot of a selected area, extracts the text from the image, and copies it to the clipboard.
-#     The script uses grimblast for Wayland and scrot for X11 to take screenshots.
-#     The script uses tesseract to extract text from the image.
-#     The script uses wl-copy and cliphist for Wayland and xclip for X11 to copy the extracted text to the clipboard.
-#     The script uses a python script to extract text from the image.
+#     OCR4Linux.py is a Python script that handles image preprocessing and text extraction using Tesseract OCR.
+#     The script takes an input image, processes it for optimal OCR accuracy, and extracts text while preserving
+#     line breaks and layout.
+#
+# Features:
+#     - Image preprocessing (grayscale conversion, thresholding, noise removal)
+#     - Text extraction with layout preservation
+#     - Confidence-based filtering for improved accuracy
+#     - Support for multiple image formats
+#     - UTF-8 text output
+#
+# Dependencies:
+#     - PIL (Python Imaging Library)
+#     - pytesseract
+#     - OpenCV (cv2)
+#     - numpy
+#
+# Class Structure:
+#     TesseractConfig:
+#         - preprocess_image(): Enhances image quality for better OCR
+#         - extract_text_with_lines(): Extracts text while preserving layout
+#         - help(): Displays usage instructions
+#         - main(): Orchestrates the OCR process
+#
+# Usage:
+#     python OCR4Linux.py <image_path> <output_path>
+#
+# Example:
+#     python OCR4Linux.py screenshot.png output.txt
 # ========================================================================================================================
+
 import sys
 import os
 from PIL import Image
