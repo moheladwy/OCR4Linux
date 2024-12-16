@@ -2,7 +2,7 @@
 # ========================================================================================================================
 # Author:
 #     Mohamed Hussein Al-Adawy
-# Version: 1.1.0
+# Version: 1.2.0
 # Description:
 #     This setup script installs and configures OCR4Linux and its dependencies.
 #     It handles the installation of:

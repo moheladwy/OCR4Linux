@@ -1,7 +1,7 @@
 #!/bin/bash
 # ========================================================================================================================
 # Author: Mohamed Hussein Al-Adawy
-# Version: 1.1.0
+# Version: 1.2.0
 # Description:
 #     OCR4Linux is a versatile text extraction tool for Linux systems that:
 #     1. Takes screenshots of selected areas using:

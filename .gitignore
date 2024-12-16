@@ -164,3 +164,9 @@ cython_debug/
 # VS Code
 #  Add .vscode/ to the .gitignore file if you are using Visual Studio Code
 .vscode/
+
+*.jpg
+*.jpeg
+*.png
+*.gif
+output*.txt
