@@ -7,4 +7,6 @@ disable=
     C0411,  # Wrong import order
     E1101,  # No member
     W0612,  # Unused variable
-    W0718   # Broad exception caught
+    W0718,  # Broad exception caught
+    R1705,  # Unnecessary "else" after "return"
+    R0902,  # Too many instance attributes
