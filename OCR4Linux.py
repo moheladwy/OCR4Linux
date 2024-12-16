@@ -77,7 +77,9 @@ class TesseractConfig:
         self.output_path = output_path
         self.oem_mode = 3  # Default LSTM engine
         self.psm_mode = 6  # Uniform block of text
-        self.langs = "eng+ara"
+        self.available_langs = pytesseract.get_languages()
+        self.langs = '+'.join(filter(None, self.available_langs)
+                              ) if self.available_langs else 'eng'
         self.custom_config = f'--oem {self.oem_mode} --psm {self.psm_mode}'
         self.ouput_encoding = 'utf-8'
 
@@ -148,17 +150,20 @@ class Program:
             "    based on the language in the image."
         self.useges = [
             "python OCR4Linux.py <image_path> <output_path>",
+            "python OCR4Linux.py [-l | --list-langs]",
             "python OCR4Linux.py [-h | --help]"
         ]
         self.examples = [
             "python OCR4Linux.py screenshot.png output.txt",
+            "python OCR4Linux.py -l",
             "python OCR4Linux.py -h"
         ]
         self.arguments = [
-            "file_path:     Path to the python script",
-            "image_path:    Path to the image file",
-            "output_path:   Path to the output text file",
-            "-h, --help:    Display this help message, then exit"
+            "file_path:         Path to the python script",
+            "image_path:        Path to the image file",
+            "output_path:       Path to the output text file",
+            "-l, --list-langs:  List all available languages for OCR in the system",
+            "-h, --help:        Display this help message, then exit"
         ]
 
     def help(self) -> None:
@@ -166,23 +171,9 @@ class Program:
         Prints the usage instructions for the OCR4Linux script.
 
         This method displays the correct way to run the script, including the required
-        arguments and their descriptions.
-
-        Usage:
-            - python <script_name> <image_path> <output_path>
-            - python <script_name> [-h | --help]
-
-        Example:    
-            - python OCR4Linux.py screenshot.png output.txt
-            - python OCR4Linux.py -h
-
-        Arguments:
-            file_path: Path to the python script
-            image_path: Path to the image file
-            output_path: Path to the output text file
-            -h, --help: Display this help message, then exit
+        arguments and their descriptions. It also provides examples of how to use the script.
         """
-        print("OCR4Linux - OCR for Linux using Tesseract")
+        print("OCR4Linux - OCR script for Linux using Tesseract")
         print(f"Version: {self.version}")
         print(f"Author:  {self.author}")
         print(f"Email:   {self.email}")
@@ -203,20 +194,41 @@ class Program:
         for argument in self.arguments:
             print(f"    {argument}")
 
-    def check_arguments(self) -> bool:
+    def check_arguments(self) -> int:
         """
         Checks the command line arguments for validity.
 
-        This method checks if the correct number of arguments is provided.
-        If the number of arguments is incorrect, it displays the usage instructions.
+        Handles the following options:
+        - Standard usage: <image_path> <output_path>
+        - Help: -h or --help
+        - List languages: -l or --list-langs
 
         Returns:
-            bool: True if the number of arguments is correct, False otherwise.
+            bool: True if arguments are valid, False otherwise.
         """
-        if len(sys.argv) != self.args_num or sys.argv[1] in ['-h', '--help']:
+        if len(sys.argv) == 2 and sys.argv[1] in ['-l', '--list-langs']:
+            self.list_available_languages()
+            return 0
+        elif len(sys.argv) == 2 and sys.argv[1] in ['-h', '--help']:
             self.help()
-            return False
-        return True
+            return 0
+        elif len(sys.argv) != self.args_num:
+            self.help()
+            return 1
+        return 2
+
+    def list_available_languages(self) -> None:
+        """
+        Displays all available languages for Tesseract OCR.
+        """
+        langs = pytesseract.get_languages()
+        if not langs:
+            print("Error: No languages found")
+            return
+
+        print("Available languages for OCR:")
+        for lang in langs:
+            print(f"  - {lang}")
 
     def check_image_path(self, image_path: str) -> bool:
         """
@@ -246,8 +258,11 @@ class Program:
             int: Returns 1 if there is an error with the arguments or image path, otherwise returns the result of the TesseractConfig main function.
         """
         # Check if the correct number of arguments is provided
-        if not self.check_arguments():
+        result = self.check_arguments()
+        if result == 1:
             return 1
+        elif result == 0:
+            return 0
 
         # Check if the image file exists
         if not self.check_image_path(sys.argv[1]):
