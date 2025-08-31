@@ -85,10 +85,23 @@ class TesseractConfig:
     @staticmethod
     def process_langs(preferred_langs: str) -> str:
         """
-        Checks if the preferred languages are recognized by tesseract and outputs langs string. (e.g. "eng+ara")
+        Validates and processes preferred languages for Tesseract OCR.
 
-        Passed langs from the shell script are supposed to be a subset of the available languages,
-        but just to make sure.
+        This method takes a string of preferred languages and validates them against
+        the languages supported by the installed Tesseract OCR engine. It returns
+        a properly formatted language string that can be used with pytesseract.
+
+        Args:
+            preferred_langs (str): A string specifying the desired languages for OCR.
+                - Use "all" to include all available languages
+
+        Returns:
+            str: A formatted language string compatible with Tesseract OCR
+
+        Raises:
+            SystemExit: Exits with code 1 if:
+                - No languages are recognized by Tesseract (installation issue)
+                - None of the requested languages are available in Tesseract
         """
         recognized_langs = set(pytesseract.get_languages())
 
@@ -174,12 +187,13 @@ class Program:
             + "    based on the language in the image."
         )
         self.useges = [
-            "python OCR4Linux.py <image_path> <output_path>",
+            "python OCR4Linux.py <image_path> <output_path> <languages>",
             "python OCR4Linux.py [-l | --list-langs]",
             "python OCR4Linux.py [-h | --help]",
         ]
         self.examples = [
-            "python OCR4Linux.py screenshot.png output.txt",
+            "python OCR4Linux.py screenshot.png output.txt eng+bul",
+            "python OCR4Linux.py screenshot.png output.txt all",
             "python OCR4Linux.py -l",
             "python OCR4Linux.py -h",
         ]
@@ -187,6 +201,7 @@ class Program:
             "file_path:         Path to the python script",
             "image_path:        Path to the image file",
             "output_path:       Path to the output text file",
+            "languages:         `+` joined list of Tesseract language names or `all`"
             "-l, --list-langs:  List all available languages for OCR in the system",
             "-h, --help:        Display this help message, then exit",
         ]
