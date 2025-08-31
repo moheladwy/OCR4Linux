@@ -40,6 +40,8 @@ SLEEP_DURATION=0.5
 REMOVE_SCREENSHOT=false
 KEEP_LOGS=false
 
+langs=()
+
 # Display help message
 show_help() {
     echo "Usage: $(basename "$0") [OPTIONS]"
@@ -59,17 +61,17 @@ show_help() {
 # Parse command line arguments
 while getopts "rd:lh" opt; do
     case $opt in
-    r) REMOVE_SCREENSHOT=true ;;
-    d) SCREENSHOT_DIRECTORY="$OPTARG" ;;
-    l) KEEP_LOGS=true ;;
-    h)
-        show_help
-        exit 0
-        ;;
-    *)
-        show_help
-        exit 1
-        ;;
+        r) REMOVE_SCREENSHOT=true ;;
+        d) SCREENSHOT_DIRECTORY="$OPTARG" ;;
+        l) KEEP_LOGS=true ;;
+        h)
+            show_help
+            exit 0
+            ;;
+        *)
+            show_help
+            exit 1
+            ;;
     esac
 done
 
@@ -134,11 +136,23 @@ takescreenshot() {
     log_message "Screenshot saved to $SCREENSHOT_DIRECTORY/$SCREENSHOT_NAME"
 }
 
+choose_lang() {
+    mapfile -t langs < <(tesseract --list-langs | awk 'BEGIN {print "ALL" } FNR>1' | rofi -dmenu -multi-select)
+
+    if [ ${#langs[@]} -eq 0 ]; then
+        log_message "CANCELLED: User aborted"
+        exit 1
+    fi
+
+    log_message "Choosed languages: $(IFS=+ ; echo "${langs[*]}")"
+}
+
 # Pass the screenshot to OCR tool to extract text from the image.
 extract_text() {
     python "$OCR4Linux_HOME/$OCR4Linux_PYTHON_NAME" \
         "$SCREENSHOT_DIRECTORY/$SCREENSHOT_NAME" \
-        "$OCR4Linux_HOME/$TEXT_OUTPUT_FILE_NAME"
+        "$OCR4Linux_HOME/$TEXT_OUTPUT_FILE_NAME" \
+        $(IFS=+ ; echo "${langs[*]}")
     log_message "Text extraction completed successfully"
 }
 
@@ -174,6 +188,7 @@ remove_image() {
 
 # Run the functions
 main() {
+    choose_lang
     check_if_files_exist
     takescreenshot
     extract_text

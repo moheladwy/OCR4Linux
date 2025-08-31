@@ -34,10 +34,11 @@
 #     python OCR4Linux.py screenshot.png output.txt
 # ========================================================================================================================
 
-import sys
 import os
-from PIL import Image
+import sys
+
 import pytesseract
+from PIL import Image
 
 
 class TesseractConfig:
@@ -60,7 +61,7 @@ class TesseractConfig:
             text extraction, and saves the extracted text to an output file. Returns 0 if successful, 1 otherwise.
     """
 
-    def __init__(self, image_path: str, output_path: str):
+    def __init__(self, image_path: str, output_path: str, langs: str):
         """
         Initializes the OCR4Linux class with command-line arguments.
 
@@ -77,11 +78,33 @@ class TesseractConfig:
         self.output_path = output_path
         self.oem_mode = 3  # Default LSTM engine
         self.psm_mode = 6  # Uniform block of text
-        self.available_langs = pytesseract.get_languages()
-        self.langs = '+'.join(filter(None, self.available_langs)
-                              ) if self.available_langs else 'eng'
-        self.custom_config = f'--oem {self.oem_mode} --psm {self.psm_mode}'
-        self.ouput_encoding = 'utf-8'
+        self.langs = self.process_langs(langs)
+        self.custom_config = f"--oem {self.oem_mode} --psm {self.psm_mode}"
+        self.ouput_encoding = "utf-8"
+
+    @staticmethod
+    def process_langs(preferred_langs: str) -> str:
+        """
+        Checks if the preferred languages are recognized by tesseract and outputs langs string. (e.g. "eng+ara")
+
+        Passed langs from the shell script are supposed to be a subset of the available languages,
+        but just to make sure.
+        """
+        recognized_langs = set(pytesseract.get_languages())
+
+        if not recognized_langs:
+            exit(1)
+
+        if preferred_langs.lower() == "all":
+            return "+".join(recognized_langs)
+
+        langs = set(preferred_langs.split("+")) if preferred_langs else {"eng"}
+        available_langs = langs & recognized_langs
+
+        if len(available_langs) > 0:
+            return "+".join(available_langs)
+        else:
+            exit(1)
 
     def extract_text_with_lines(self, image: Image) -> str:
         """
@@ -95,7 +118,8 @@ class TesseractConfig:
             A string containing the extracted text with line breaks preserved.
         """
         return pytesseract.image_to_string(
-            image=image, lang=self.langs, config=self.custom_config)
+            image=image, lang=self.langs, config=self.custom_config
+        )
 
     def main(self) -> int:
         """
@@ -115,7 +139,7 @@ class TesseractConfig:
                 extracted_text = self.extract_text_with_lines(image)
 
                 # Save the extracted text to a file
-                with open(self.output_path, 'w', encoding=self.ouput_encoding) as file:
+                with open(self.output_path, "w", encoding=self.ouput_encoding) as file:
                     file.write(extracted_text)
 
                 return 0
@@ -139,31 +163,32 @@ class Program:
         - examples: List of example commands for using the script.
         - arguments: List of arguments that the script accepts with their descriptions.
         """
-        self.args_num = 3
+        self.args_num = 4
         self.author = "Mohamed Hussein Al-Adawy"
         self.email = "mohamed.h.eladwy@gmail.com"
         self.github = "https://github.com/moheladwy/OCR4Linux"
         self.version = "1.2.0"
-        self.description = \
-            "    OCR4Linux.py is a Python script that handles image preprocessing\n" + \
-            "    and text extraction using Tesseract OCR. The script takes an input\n" + \
-            "    based on the language in the image."
+        self.description = (
+            "    OCR4Linux.py is a Python script that handles image preprocessing\n"
+            + "    and text extraction using Tesseract OCR. The script takes an input\n"
+            + "    based on the language in the image."
+        )
         self.useges = [
             "python OCR4Linux.py <image_path> <output_path>",
             "python OCR4Linux.py [-l | --list-langs]",
-            "python OCR4Linux.py [-h | --help]"
+            "python OCR4Linux.py [-h | --help]",
         ]
         self.examples = [
             "python OCR4Linux.py screenshot.png output.txt",
             "python OCR4Linux.py -l",
-            "python OCR4Linux.py -h"
+            "python OCR4Linux.py -h",
         ]
         self.arguments = [
             "file_path:         Path to the python script",
             "image_path:        Path to the image file",
             "output_path:       Path to the output text file",
             "-l, --list-langs:  List all available languages for OCR in the system",
-            "-h, --help:        Display this help message, then exit"
+            "-h, --help:        Display this help message, then exit",
         ]
 
     def help(self) -> None:
@@ -206,10 +231,10 @@ class Program:
         Returns:
             bool: True if arguments are valid, False otherwise.
         """
-        if len(sys.argv) == 2 and sys.argv[1] in ['-l', '--list-langs']:
+        if len(sys.argv) == 2 and sys.argv[1] in ["-l", "--list-langs"]:
             self.list_available_languages()
             return 0
-        elif len(sys.argv) == 2 and sys.argv[1] in ['-h', '--help']:
+        elif len(sys.argv) == 2 and sys.argv[1] in ["-h", "--help"]:
             self.help()
             return 0
         elif len(sys.argv) != self.args_num:
@@ -269,7 +294,7 @@ class Program:
             return 1
 
         # Create an instance of the TesseractConfig class
-        tesseract = TesseractConfig(sys.argv[1], sys.argv[2])
+        tesseract = TesseractConfig(sys.argv[1], sys.argv[2], sys.argv[3])
         return tesseract.main()
 
 
