@@ -46,7 +46,7 @@ class TesseractConfig:
 
         langs (str): The languages to be used by Tesseract for OCR.
         custom_config (str): Custom configuration string for Tesseract.
-        ouput_encoding (str): The encoding to be used for the output file.
+        output_encoding (str): The encoding to be used for the output file.
 
     Methods:
         __init__(self, image_path: str, output_path: str):
@@ -60,28 +60,37 @@ class TesseractConfig:
             text extraction, and saves the extracted text to an output file. Returns 0 if successful, 1 otherwise.
     """
 
-    def __init__(self, image_path: str, output_path: str):
+    def __init__(self, image_path: str, output_path: str, langs: str = None):
         """
         Initializes the OCR4Linux class with command-line arguments.
 
         Attributes:
             image_path (str): The path to the input image file.
             output_path (str): The path to the output file where results will be saved.
+            langs (str): The languages to be used by Tesseract for OCR (optional).
             oem_mode (int): The OCR Engine Mode (OEM) for Tesseract.
             psm_mode (int): The Page Segmentation Mode (PSM) for Tesseract.
-            langs (str): The languages to be used by Tesseract for OCR.
             custom_config (str): Custom configuration string for Tesseract.
-            ouput_encoding (str): The encoding to be used for the output file.
+            output_encoding (str): The encoding to be used for the output file.
         """
         self.image_path = image_path
         self.output_path = output_path
         self.oem_mode = 3  # Default LSTM engine
         self.psm_mode = 6  # Uniform block of text
         self.available_langs = pytesseract.get_languages()
-        self.langs = '+'.join(filter(None, self.available_langs)
-                              ) if self.available_langs else 'eng'
+
+        # Use provided languages or default to all available languages
+        if langs and langs.strip():
+            self.langs = langs
+            print(f"Using specified languages: {langs}", file=sys.stderr)
+        else:
+            self.langs = '+'.join(filter(None, self.available_langs)
+                                  ) if self.available_langs else 'eng'
+            print(
+                f"Using all available languages: {self.langs}", file=sys.stderr)
+
         self.custom_config = f'--oem {self.oem_mode} --psm {self.psm_mode}'
-        self.ouput_encoding = 'utf-8'
+        self.output_encoding = 'utf-8'
 
     def extract_text_with_lines(self, image: Image) -> str:
         """
@@ -115,7 +124,7 @@ class TesseractConfig:
                 extracted_text = self.extract_text_with_lines(image)
 
                 # Save the extracted text to a file
-                with open(self.output_path, 'w', encoding=self.ouput_encoding) as file:
+                with open(self.output_path, 'w', encoding=self.output_encoding) as file:
                     file.write(extracted_text)
 
                 return 0
@@ -149,12 +158,13 @@ class Program:
             "    and text extraction using Tesseract OCR. The script takes an input\n" + \
             "    based on the language in the image."
         self.useges = [
-            "python OCR4Linux.py <image_path> <output_path>",
+            "python OCR4Linux.py <image_path> <output_path> [--langs <languages>]",
             "python OCR4Linux.py [-l | --list-langs]",
             "python OCR4Linux.py [-h | --help]"
         ]
         self.examples = [
             "python OCR4Linux.py screenshot.png output.txt",
+            "python OCR4Linux.py screenshot.png output.txt --langs eng+fra+deu",
             "python OCR4Linux.py -l",
             "python OCR4Linux.py -h"
         ]
@@ -162,6 +172,7 @@ class Program:
             "file_path:         Path to the python script",
             "image_path:        Path to the image file",
             "output_path:       Path to the output text file",
+            "--langs:           Specify languages for OCR (e.g., eng+fra+deu)",
             "-l, --list-langs:  List all available languages for OCR in the system",
             "-h, --help:        Display this help message, then exit"
         ]
@@ -199,12 +210,12 @@ class Program:
         Checks the command line arguments for validity.
 
         Handles the following options:
-        - Standard usage: <image_path> <output_path>
+        - Standard usage: <image_path> <output_path> [--langs <languages>]
         - Help: -h or --help
         - List languages: -l or --list-langs
 
         Returns:
-            bool: True if arguments are valid, False otherwise.
+            int: 0 if help/list was shown, 1 if error, 2 if valid arguments for processing.
         """
         if len(sys.argv) == 2 and sys.argv[1] in ['-l', '--list-langs']:
             self.list_available_languages()
@@ -212,7 +223,11 @@ class Program:
         elif len(sys.argv) == 2 and sys.argv[1] in ['-h', '--help']:
             self.help()
             return 0
-        elif len(sys.argv) != self.args_num:
+        elif len(sys.argv) < self.args_num or len(sys.argv) > 5:
+            # Valid patterns:
+            # 3 args: script image_path output_path
+            # 4 args: script image_path output_path --langs=languages
+            # 5 args: script image_path output_path --langs languages
             self.help()
             return 1
         return 2
@@ -252,7 +267,8 @@ class Program:
         This function performs the following steps:
         1. Checks if the correct number of arguments is provided.
         2. Verifies if the image file exists.
-        3. Creates an instance of the TesseractConfig class and runs the OCR process.
+        3. Parses language arguments if provided.
+        4. Creates an instance of the TesseractConfig class and runs the OCR process.
 
         Returns:
             int: Returns 1 if there is an error with the arguments or image path, otherwise returns the result of the TesseractConfig main function.
@@ -268,8 +284,15 @@ class Program:
         if not self.check_image_path(sys.argv[1]):
             return 1
 
+        # Parse language arguments
+        langs = None
+        if len(sys.argv) >= 4 and sys.argv[3] == '--langs' and len(sys.argv) == 5:
+            langs = sys.argv[4]
+        elif len(sys.argv) == 4 and sys.argv[3].startswith('--langs='):
+            langs = sys.argv[3].split('=', 1)[1]
+
         # Create an instance of the TesseractConfig class
-        tesseract = TesseractConfig(sys.argv[1], sys.argv[2])
+        tesseract = TesseractConfig(sys.argv[1], sys.argv[2], langs)
         return tesseract.main()
 
 

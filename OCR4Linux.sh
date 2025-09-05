@@ -23,6 +23,7 @@
 #     - tesseract-ocr: For text extraction
 #     - grimblast/scrot: For screenshot capture
 #     - wl-clipboard/xclip: For clipboard operations
+#     - rofi: For language selection menu
 #     - Python 3.x: For image processing
 #
 # Usage:
@@ -39,37 +40,61 @@ LOGS_FILE_NAME="OCR4Linux.log"
 SLEEP_DURATION=0.5
 REMOVE_SCREENSHOT=false
 KEEP_LOGS=false
+LANG_SPECIFIED=false
+SPECIFIED_LANGS=""
+
+langs=()
 
 # Display help message
 show_help() {
     echo "Usage: $(basename "$0") [OPTIONS]"
     echo "Options:"
-    echo "  -r            Remove screenshot in the screenshot directory"
-    echo "  -d DIRECTORY  Set screenshot directory (default: $SCREENSHOT_DIRECTORY)"
-    echo "  -l            Keep logs"
-    echo "  -h            Show this help message, then exit"
+    echo "  -r                Remove screenshot in the screenshot directory"
+    echo "  -d DIRECTORY      Set screenshot directory (default: $SCREENSHOT_DIRECTORY)"
+    echo "  -l                Keep logs"
+    echo "  --lang LANGUAGES  Specify OCR languages (e.g., 'all', 'eng', 'eng+ara')"
+    echo "  -h                Show this help message, then exit"
     echo "Example:"
-    echo "  OCR4Linux.sh -s -d $HOME/screenshots -l"
-    echo "  OCR4Linux.sh -s -l"
+    echo "  OCR4Linux.sh -d $HOME/screenshots -l"
+    echo "  OCR4Linux.sh --lang eng+ara"
+    echo "  OCR4Linux.sh --lang all -l"
     echo "  OCR4Linux.sh -h"
     echo "Note:"
-    echo "  if you run \`OCR4Linux.sh\` only without any arguments, it will save the screenshot in the default directory $SCREENSHOT_DIRECTORY."
+    echo "  - If --lang is not specified, an interactive language selection menu will appear"
+    echo "  - Use 'all' to select all available languages"
+    echo "  - Use '+' to separate multiple languages (e.g., 'eng+ara+fra')"
+    echo "  - Without arguments, screenshots are saved to $SCREENSHOT_DIRECTORY"
 }
 
 # Parse command line arguments
-while getopts "rd:lh" opt; do
-    case $opt in
-    r) REMOVE_SCREENSHOT=true ;;
-    d) SCREENSHOT_DIRECTORY="$OPTARG" ;;
-    l) KEEP_LOGS=true ;;
-    h)
-        show_help
-        exit 0
-        ;;
-    *)
-        show_help
-        exit 1
-        ;;
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -r)
+            REMOVE_SCREENSHOT=true
+            shift
+            ;;
+        -d)
+            SCREENSHOT_DIRECTORY="$2"
+            shift 2
+            ;;
+        -l)
+            KEEP_LOGS=true
+            shift
+            ;;
+        --lang)
+            SPECIFIED_LANGS="$2"
+            LANG_SPECIFIED=true
+            shift 2
+            ;;
+        -h)
+            show_help
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            show_help
+            exit 1
+            ;;
     esac
 done
 
@@ -88,6 +113,12 @@ log_message() {
 # Check if the required files exist.
 check_if_files_exist() {
     log_message "Checking required files and directories..."
+
+    # Check if rofi is installed
+    if ! command -v rofi &> /dev/null; then
+        log_message "ERROR: rofi is not installed. Please install rofi to use language selection."
+        exit 1
+    fi
 
     # Validate screenshot directory
     if [ ! -d "$SCREENSHOT_DIRECTORY" ]; then
@@ -109,6 +140,50 @@ check_if_files_exist() {
     if [ ! -f "$OCR4Linux_HOME/$OCR4Linux_PYTHON_NAME" ]; then
         log_message "ERROR: $OCR4Linux_PYTHON_NAME not found in $OCR4Linux_HOME"
         exit 1
+    fi
+}
+
+# Process specified languages from command line
+process_specified_langs() {
+    log_message "Processing specified languages: $SPECIFIED_LANGS"
+    
+    # Handle "all" case
+    if [[ "$SPECIFIED_LANGS" == "all" ]]; then
+        mapfile -t langs < <(tesseract --list-langs | awk 'FNR>1')
+        log_message "Using ALL available languages: $(IFS=+ ; echo "${langs[*]}")"
+    else
+        # Split the language string by '+' and populate the langs array
+        IFS='+' read -ra langs <<< "$SPECIFIED_LANGS"
+        log_message "Using specified languages: $(IFS=+ ; echo "${langs[*]}")"
+        
+        # Validate that the specified languages are available
+        available_langs=$(tesseract --list-langs | awk 'FNR>1')
+        for lang in "${langs[@]}"; do
+            if ! echo "$available_langs" | grep -q "^$lang$"; then
+                log_message "WARNING: Language '$lang' is not available on this system"
+            fi
+        done
+    fi
+}
+
+# Choose languages for OCR using rofi
+choose_lang() {
+    log_message "Fetching available languages for OCR selection..."
+    
+    # Get available languages and add "ALL" option at the beginning
+    mapfile -t langs < <(tesseract --list-langs | awk 'BEGIN {print "ALL" } FNR>1' | rofi -dmenu -multi-select -p "Select OCR Languages:")
+
+    if [ ${#langs[@]} -eq 0 ]; then
+        log_message "CANCELLED: User aborted language selection"
+        exit 1
+    fi
+
+    # If "ALL" is selected, use all available languages
+    if [[ " ${langs[*]} " =~ " ALL " ]]; then
+        mapfile -t langs < <(tesseract --list-langs | awk 'FNR>1')
+        log_message "Selected ALL languages: $(IFS=+ ; echo "${langs[*]}")"
+    else
+        log_message "Selected languages: $(IFS=+ ; echo "${langs[*]}")"
     fi
 }
 
@@ -136,9 +211,22 @@ takescreenshot() {
 
 # Pass the screenshot to OCR tool to extract text from the image.
 extract_text() {
-    python "$OCR4Linux_HOME/$OCR4Linux_PYTHON_NAME" \
-        "$SCREENSHOT_DIRECTORY/$SCREENSHOT_NAME" \
-        "$OCR4Linux_HOME/$TEXT_OUTPUT_FILE_NAME"
+    # Create language string for passing to Python script
+    local lang_string=""
+    if [ ${#langs[@]} -gt 0 ]; then
+        lang_string=$(IFS=+; echo "${langs[*]}")
+    fi
+    
+    if [ -n "$lang_string" ]; then
+        python "$OCR4Linux_HOME/$OCR4Linux_PYTHON_NAME" \
+            "$SCREENSHOT_DIRECTORY/$SCREENSHOT_NAME" \
+            "$OCR4Linux_HOME/$TEXT_OUTPUT_FILE_NAME" \
+            --langs "$lang_string"
+    else
+        python "$OCR4Linux_HOME/$OCR4Linux_PYTHON_NAME" \
+            "$SCREENSHOT_DIRECTORY/$SCREENSHOT_NAME" \
+            "$OCR4Linux_HOME/$TEXT_OUTPUT_FILE_NAME"
+    fi
     log_message "Text extraction completed successfully"
 }
 
@@ -175,6 +263,14 @@ remove_image() {
 # Run the functions
 main() {
     check_if_files_exist
+    
+    # Handle language selection
+    if [ "$LANG_SPECIFIED" = true ]; then
+        process_specified_langs
+    else
+        choose_lang
+    fi
+    
     takescreenshot
     extract_text
     run_copy_to_clipboard
