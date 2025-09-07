@@ -1,7 +1,7 @@
 # ========================================================================================================================
 # Author:
 #     Mohamed Hussein Al-Adawy
-# Version: 1.2.0
+# Version: 1.3.0
 # Description:
 #     OCR4Linux.py is a Python script that handles image preprocessing and text extraction using Tesseract OCR.
 #     The script takes an input image, processes it for optimal OCR accuracy, and extracts text while preserving
@@ -152,7 +152,7 @@ class Program:
         self.author = "Mohamed Hussein Al-Adawy"
         self.email = "mohamed.h.eladwy@gmail.com"
         self.github = "https://github.com/moheladwy/OCR4Linux"
-        self.version = "1.2.0"
+        self.version = "1.3.0"
         self.description = \
             "    OCR4Linux.py is a Python script that handles image preprocessing\n" + \
             "    and text extraction using Tesseract OCR. The script takes an input\n" + \
