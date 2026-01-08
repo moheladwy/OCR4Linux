@@ -1,7 +1,7 @@
 #!/bin/bash
 # ========================================================================================================================
 # Author: Mohamed Hussein Al-Adawy
-# Version: 1.2.0
+# Version: 1.4.0
 # Description:
 #     OCR4Linux is a versatile text extraction tool for Linux systems that:
 #     1. Takes screenshots of selected areas using:
@@ -189,14 +189,18 @@ choose_lang() {
 
 # take shots using grimblast for wayland
 takescreenshot_wayland() {
+    log_message "Taking screenshot using grimblast for Wayland..."
     sleep $SLEEP_DURATION
     grimblast --notify copysave area "$SCREENSHOT_DIRECTORY/$SCREENSHOT_NAME"
+    log_message "Screenshot saved to $SCREENSHOT_DIRECTORY/$SCREENSHOT_NAME in wayland session"
 }
 
 # take shots using scrot for x11
 takescreenshot_x11() {
+    log_message "Taking screenshot using scrot for X11..."
     sleep $SLEEP_DURATION
     scrot -s -Z 0 -o -F "$SCREENSHOT_DIRECTORY/$SCREENSHOT_NAME"
+    log_message "Screenshot saved to $SCREENSHOT_DIRECTORY/$SCREENSHOT_NAME in x11 session"
 }
 
 # Run the screenshot functions based on the session type.
@@ -206,7 +210,6 @@ takescreenshot() {
     else
         takescreenshot_x11
     fi
-    log_message "Screenshot saved to $SCREENSHOT_DIRECTORY/$SCREENSHOT_NAME"
 }
 
 # Pass the screenshot to OCR tool to extract text from the image.
@@ -232,13 +235,17 @@ extract_text() {
 
 # Copy the extracted text to clipboard using wl-copy and cliphist.
 copy_to_wayland_clipboard() {
+    log_message "Copying extracted text to Wayland clipboard using wl-copy and cliphist..."
     cliphist store <"$OCR4Linux_HOME/$TEXT_OUTPUT_FILE_NAME"
     cliphist list | head -n 1 | cliphist decode | wl-copy
+    log_message "Extracted text copied to Wayland clipboard successfully."
 }
 
 # Copy the extracted text to clipboard using xclip.
 copy_to_x11_clipboard() {
+    log_message "Copying extracted text to X11 clipboard using xclip..."
     xclip -selection clipboard -t text/plain -i "$OCR4Linux_HOME/$TEXT_OUTPUT_FILE_NAME"
+    log_message "Extracted text copied to X11 clipboard successfully."
 }
 
 # Run the copy to clipboard functions based on the session type.
