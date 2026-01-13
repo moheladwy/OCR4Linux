@@ -1,7 +1,7 @@
 #!/bin/bash
 # ========================================================================================================================
 # Author: Mohamed Hussein Al-Adawy
-# Version: 1.4.0
+# Version: 1.4.1
 # Description:
 #     OCR4Linux is a versatile text extraction tool for Linux systems that:
 #     1. Takes screenshots of selected areas using:
@@ -45,6 +45,29 @@ SPECIFIED_LANGS=""
 
 langs=()
 
+# Add log function
+log_message() {
+    local message
+    message="[$(date '+%Y-%m-%d %H:%M:%S')] $1"
+    echo "$message" >&2
+    if [ "$KEEP_LOGS" = true ]; then
+        {
+            echo "$message"
+        } >>"$OCR4Linux_HOME/$LOGS_FILE_NAME"
+    fi
+}
+
+# Perform update by running setup.sh from source directory
+perform_update() {
+    echo "To perform a full update, please git pull the latest version from the GitHub repository:"
+    echo "1) cd ~/src/OCR4Linux # If you haven't cloned it yet, run: git clone https://github.com/moheladwy/OCR4Linux.git ~/src/OCR4Linux"
+    echo "2) git pull"
+    echo "3) Then run the setup script:"
+    echo "4) chmod +x ./setup.sh"
+    echo "5) ./setup.sh"
+    echo "The setup script will update the OCR4Linux scripts and dependencies to the latest version."
+}
+
 # Display help message
 show_help() {
     echo "Usage: $(basename "$0") [OPTIONS]"
@@ -52,18 +75,22 @@ show_help() {
     echo "  -r                Remove screenshot in the screenshot directory"
     echo "  -d DIRECTORY      Set screenshot directory (default: $SCREENSHOT_DIRECTORY)"
     echo "  -l                Keep logs"
+    echo "  -u, --update      Update OCR4Linux (scripts and dependencies)"
     echo "  --lang LANGUAGES  Specify OCR languages (e.g., 'all', 'eng', 'eng+ara')"
     echo "  -h                Show this help message, then exit"
     echo "Example:"
     echo "  OCR4Linux.sh -d $HOME/screenshots -l"
     echo "  OCR4Linux.sh --lang eng+ara"
     echo "  OCR4Linux.sh --lang all -l"
+    echo "  OCR4Linux.sh -u"
+    echo "  OCR4Linux.sh --update"
     echo "  OCR4Linux.sh -h"
     echo "Note:"
     echo "  - If --lang is not specified, an interactive language selection menu will appear"
     echo "  - Use 'all' to select all available languages"
     echo "  - Use '+' to separate multiple languages (e.g., 'eng+ara+fra')"
     echo "  - Without arguments, screenshots are saved to $SCREENSHOT_DIRECTORY"
+    echo "  - The -u or --update option gives instructions on how to update OCR4Linux."
 }
 
 # Parse command line arguments
@@ -81,6 +108,10 @@ while [[ $# -gt 0 ]]; do
             KEEP_LOGS=true
             shift
             ;;
+        -u|--update)
+            perform_update
+            exit 0
+            ;;
         --lang)
             SPECIFIED_LANGS="$2"
             LANG_SPECIFIED=true
@@ -97,18 +128,6 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
-
-# Add log function
-log_message() {
-    local message
-    message="[$(date '+%Y-%m-%d %H:%M:%S')] $1"
-    echo "$message" >&2
-    if [ "$KEEP_LOGS" = true ]; then
-        {
-            echo "$message"
-        } >>"$OCR4Linux_HOME/$LOGS_FILE_NAME"
-    fi
-}
 
 # Check if the required files exist.
 check_if_files_exist() {
