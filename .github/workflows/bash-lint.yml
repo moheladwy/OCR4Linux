@@ -1,26 +1,29 @@
 name: Bash Lint
 
+permissions:
+  contents: read
+
 on:
-    push:
-        branches:
-            - main
-    pull_request:
-        branches:
-            - main
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
-    lint:
-        runs-on: ubuntu-latest
+  lint:
+    runs-on: ubuntu-latest
 
-        steps:
-            - name: Checkout code
-              uses: actions/checkout@v2
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-            - name: Install ShellCheck
-              run: sudo apt-get install -y shellcheck
+      - name: Install ShellCheck
+        run: sudo apt-get install -y shellcheck
 
-            - name: Lint setup.sh
-              run: shellcheck setup.sh
+      - name: Lint setup.sh
+        run: shellcheck setup.sh
 
-            - name: Lint OCR4Linux.sh
-              run: shellcheck OCR4Linux.sh
+      - name: Lint OCR4Linux.sh
+        run: shellcheck OCR4Linux.sh
