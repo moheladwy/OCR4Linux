@@ -244,7 +244,8 @@ copy_to_wayland_clipboard() {
 # Copy the extracted text to clipboard using xclip.
 copy_to_x11_clipboard() {
     log_message "Copying extracted text to X11 clipboard using xclip..."
-    xclip -selection clipboard -t text/plain -i "$OCR4Linux_HOME/$TEXT_OUTPUT_FILE_NAME"
+    xclip -selection clipboard -i "$OCR4Linux_HOME/$TEXT_OUTPUT_FILE_NAME"
+    xclip -selection primary   -i "$OCR4Linux_HOME/$TEXT_OUTPUT_FILE_NAME"
     log_message "Extracted text copied to X11 clipboard successfully."
 }
 
