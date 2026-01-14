@@ -1,5 +1,7 @@
 # OCR4Linux
 
+**Version:** 1.4.1
+
 OCR4Linux is a versatile text extraction tool that allows you to take a screenshot of a selected area, extract text using OCR, and copy it to the clipboard. It supports both Wayland and X11 sessions and offers multiple language support.
 
 **Note:** This script is currently only made for Arch Linux. It may work on other arch-based distributions, but it has not been tested yet.
@@ -86,9 +88,22 @@ I didn't find any easy tool in Linux that does the same thing as the PowerTool a
     ./setup.sh
     ```
 
+    **Note:** The setup script will:
+
+    - Install all required dependencies (tesseract, rofi, screenshot tools, etc.)
+    - Copy all OCR4Linux files to `~/.config/OCR4Linux/`
+    - Set up the necessary directory structure
+
 ## Usage
 
 1. Run the main script to take a screenshot, extract text, and copy it to the clipboard:
+
+    ```sh
+    chmod +x ~/.config/OCR4Linux/OCR4Linux.sh
+    ~/.config/OCR4Linux/OCR4Linux.sh
+    ```
+
+    Or if you're in the OCR4Linux directory:
 
     ```sh
     chmod +x OCR4Linux.sh
@@ -147,6 +162,7 @@ The complete OCR4Linux workflow:
 | `-r`               | Remove screenshot after processing    | `false`                      |
 | `-d DIR`           | Set screenshot directory              | `$HOME/Pictures/screenshots` |
 | `-l`               | Keep logs                             | `false`                      |
+| `-u, --update`     | Show update instructions              | -                            |
 | `--lang LANGUAGES` | Specify OCR languages (bypasses rofi) | Interactive selection        |
 | `-h`               | Show help message                     | -                            |
 
