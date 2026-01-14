@@ -60,7 +60,7 @@ class TesseractConfig:
             text extraction, and saves the extracted text to an output file. Returns 0 if successful, 1 otherwise.
     """
 
-    def __init__(self, image_path: str, output_path: str, langs: str = None):
+    def __init__(self, image_path: str, output_path: str, langs: str | None = None):
         """
         Initializes the OCR4Linux class with command-line arguments.
 
@@ -92,7 +92,7 @@ class TesseractConfig:
         self.custom_config = f'--oem {self.oem_mode} --psm {self.psm_mode}'
         self.output_encoding = 'utf-8'
 
-    def extract_text_with_lines(self, image: Image) -> str:
+    def extract_text_with_lines(self, image: Image.Image) -> str:
         """
         This method uses Tesseract OCR to extract text from the provided image.
 
@@ -152,7 +152,7 @@ class Program:
         self.author = "Mohamed Hussein Al-Adawy"
         self.email = "mohamed.h.eladwy@gmail.com"
         self.github = "https://github.com/moheladwy/OCR4Linux"
-        self.version = "1.3.0"
+        self.version = "1.4.1"
         self.description = \
             "    OCR4Linux.py is a Python script that handles image preprocessing\n" + \
             "    and text extraction using Tesseract OCR. The script takes an input\n" + \
