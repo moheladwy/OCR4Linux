@@ -1,8 +1,8 @@
 # Maintainer: moheladwy <mohamed.h.eladwy@gmail.com>
 pkgname=ocr4linux-git
-pkgver=1.4.2
+pkgver=1.4.2.r50.80dc25b
 pkgrel=1
-pkgdesc="OCR CLI Tool for Extracting Text from Screenshots using bash and python"
+pkgdesc="OCR CLI Tool for Extracting Text from Screenshots using bash and python for both x11 and wayland."
 arch=('any')
 url="https://github.com/moheladwy/OCR4Linux"
 license=('MIT')
@@ -25,21 +25,16 @@ depends=(
   'rofi'
 )
 makedepends=('git')
-#source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
+provides=('OCR4Linux')
 source=("$pkgname-$pkgver::git+$url")
 sha256sums=('SKIP')
 
+pkgver() {
+  printf "1.4.2.r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
+
 package() {
-  # Find the extracted directory dynamically (handles case-sensitivity differences)
-  local extracted_dir
-  extracted_dir=$(cd "$srcdir" && ls -d * -d *-"${pkgver}" 2>/dev/null | grep -E "(OCR|ocr).*${pkgver}" | head -1)
-
-  if [ -z "$extracted_dir" ]; then
-    echo "Error: Could not find extracted source directory in $srcdir"
-    exit 1
-  fi
-
-  cd "$srcdir/$extracted_dir" || exit 1
+  cd "${srcdir}/${pkgname}-${pkgver}" || exit 1
 
   # Install shell and Python scripts
   install -Dm755 OCR4Linux.py "${pkgdir}/usr/bin/OCR4Linux.py"
@@ -49,5 +44,5 @@ package() {
   install -Dm644 README.md "${pkgdir}/usr/share/doc/${pkgname}/README.md"
 
   # Install License
-  install -Dm644 LICENSE -t "${pkgdir}/usr/share/licenses/${pkgname}"
+  install -Dm644 LICENSE -t "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
 }
