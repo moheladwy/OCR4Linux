@@ -142,6 +142,22 @@ check_if_requirements_exists() {
         log_message "ERROR: $OCR4Linux_PYTHON_NAME not found in $OCR4Linux_HOME"
         exit 1
     fi
+
+    # Validate config directory
+    if [ ! -d "$OCR4Linux_CONFIG" ]; then
+        log_message "Creating config directory: $OCR4Linux_CONFIG since it does not exist."
+        if ! mkdir -p "$OCR4Linux_CONFIG"; then
+            log_message "ERROR: Failed to create directory $OCR4Linux_CONFIG"
+            exit 1
+        fi
+        log_message "Successfully created config directory: $OCR4Linux_CONFIG"
+    fi
+
+    # Check if the directory is writable
+    if [ ! -w "$OCR4Linux_CONFIG" ]; then
+        log_message "ERROR: $OCR4Linux_CONFIG is not writable"
+        exit 1
+    fi
 }
 
 # Process specified languages from command line
