@@ -33,7 +33,10 @@
 
 SCREENSHOT_NAME="screenshot_$(date +%d%m%Y_%H%M%S).jpg"
 SCREENSHOT_DIRECTORY="$HOME/Pictures/screenshots"
-OCR4Linux_HOME="$(pwd)"
+# Get the absolute path of the script itself, handling symlinks
+SCRIPT_PATH=$(realpath "$0")
+# Extract the directory part
+OCR4Linux_HOME="$(dirname "$SCRIPT_PATH")"
 OCR4Linux_PYTHON_NAME="OCR4Linux.py"
 OCR4Linux_CONFIG="$HOME/.config/OCR4Linux"
 TEXT_OUTPUT_FILE_NAME="$OCR4Linux_CONFIG/output_text.txt"
@@ -43,6 +46,7 @@ REMOVE_SCREENSHOT=false
 KEEP_LOGS=false
 LANG_SPECIFIED=false
 SPECIFIED_LANGS=""
+VERSION="v1.4.2"
 
 langs=()
 
@@ -66,12 +70,14 @@ show_help() {
     echo "  -d DIRECTORY      Set screenshot directory (default: $SCREENSHOT_DIRECTORY)"
     echo "  -l                Keep logs"
     echo "  --lang LANGUAGES  Specify OCR languages (e.g., 'all', 'eng', 'eng+ara')"
-    echo "  -h                Show this help message, then exit"
+    echo "  -v | --version    Print the package version, then exist"
+    echo "  -h | --help       Show this help message, then exit"
     echo "Example:"
     echo "  OCR4Linux.sh -d $HOME/screenshots -l"
     echo "  OCR4Linux.sh --lang eng+ara"
     echo "  OCR4Linux.sh --lang all -l"
     echo "  OCR4Linux.sh -h"
+    echo "  OCR4Linux.sh -v"
     echo "Note:"
     echo "  - If --lang is not specified, an interactive language selection menu will appear"
     echo "  - Use 'all' to select all available languages"
@@ -99,8 +105,12 @@ while [[ $# -gt 0 ]]; do
         LANG_SPECIFIED=true
         shift 2
         ;;
-    -h)
+    -h|--help)
         show_help
+        exit 0
+        ;;
+    -v|--version)
+        echo "${VERSION}"
         exit 0
         ;;
     *)
