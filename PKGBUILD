@@ -2,7 +2,7 @@
 pkgname=ocr4linux-git
 pkgver=1.4.2
 pkgrel=1
-pkgdesc="OCR Script CLI Tool for Extracting Text from Screenshots using bash and python"
+pkgdesc="OCR CLI Tool for Extracting Text from Screenshots using bash and python"
 arch=('any')
 url="https://github.com/moheladwy/OCR4Linux"
 license=('MIT')
