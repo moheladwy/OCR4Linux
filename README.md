@@ -47,6 +47,7 @@ I didn't find any easy tool in Linux that does the same thing as the PowerTool a
 -   `tesseract` OCR engine
 -   `tesseract-data-eng` English language pack
 -   `tesseract-data-ara` Arabic language pack
+-   `rofi` for the interactive language selection feature.
 -   If you need any other language other than the above two, search for it using the command:
 
     ```sh
@@ -64,15 +65,23 @@ I didn't find any easy tool in Linux that does the same thing as the PowerTool a
     -   `grimblast-git`
     -   `wl-clipboard`
     -   `cliphist`
-    -   `rofi-wayland`
 -   X11:
     -   `scrot`
     -   `xclip`
-    -   `rofi`
-
-**Note:** `rofi` is required for the interactive language selection feature.
 
 ## Installation
+
+### Option 1: Install from AUR (Recommended)
+
+The easiest way to install OCR4Linux on Arch Linux or any Arch-based distribution is directly from the AUR:
+
+```sh
+yay -S ocr4linux-git
+```
+
+This will automatically install OCR4Linux and all its required dependencies.
+
+### Option 2: Manual Installation
 
 1. Clone the repository:
 
@@ -90,6 +99,7 @@ I didn't find any easy tool in Linux that does the same thing as the PowerTool a
 
     **Note:** The setup script will:
 
+    - Prompt you to confirm before proceeding with the manual installation
     - Install all required dependencies (tesseract, rofi, screenshot tools, etc.)
     - Copy all OCR4Linux files to `~/.config/OCR4Linux/`
     - Set up the necessary directory structure
@@ -116,7 +126,9 @@ I didn't find any easy tool in Linux that does the same thing as the PowerTool a
     - Allow you to select one or multiple languages for OCR processing
     - Take a screenshot of the selected area after language selection
     - Extract text from the image using the selected languages
-    - Copy the extracted text to the clipboard### Language Selection
+    - Copy the extracted text to the clipboard
+
+### Language Selection
 
 You have two options for language selection:
 
@@ -162,9 +174,9 @@ The complete OCR4Linux workflow:
 | `-r`               | Remove screenshot after processing    | `false`                      |
 | `-d DIR`           | Set screenshot directory              | `$HOME/Pictures/screenshots` |
 | `-l`               | Keep logs                             | `false`                      |
-| `-u, --update`     | Show update instructions              | -                            |
 | `--lang LANGUAGES` | Specify OCR languages (bypasses rofi) | Interactive selection        |
-| `-h`               | Show help message                     | -                            |
+| `-v, --version`    | Print the package version, then exit  | -                            |
+| `-h, --help`       | Show help message, then exit          | -                            |
 
 **Language Format for `--lang`**:
 
@@ -208,6 +220,9 @@ The complete OCR4Linux workflow:
 # Combine language specification with other options
 ./OCR4Linux.sh --lang eng -l -r
 ./OCR4Linux.sh --lang all -d ~/screenshots -l
+
+# Print version
+./OCR4Linux.sh -v
 
 # Show help
 ./OCR4Linux.sh -h
@@ -289,7 +304,7 @@ python OCR4Linux.py --help
 
 -   [OCR4Linux.py](https://github.com/moheladwy/OCR4Linux/blob/main/OCR4Linux.py): Python script to preprocess the image and extract text using `tesseract` with support for custom language selection.
 -   [OCR4Linux.sh](https://github.com/moheladwy/OCR4Linux/blob/main/OCR4Linux.sh): Shell script that provides both interactive language selection via rofi and direct command-line language specification, takes a screenshot, passes it to the python script with selected languages, gets the extracted text, and copies it to the clipboard.
--   [setup.sh](https://github.com/moheladwy/OCR4Linux/blob/main/setup.sh): Shell script to install the required packages and copy the necessary files to the configuration directory (run this script the first time you clone the repository only).
+-   [setup.sh](https://github.com/moheladwy/OCR4Linux/blob/main/setup.sh): Shell script to install the required packages and copy the necessary files to the configuration directory. Intended for manual installation only — Arch-based users are encouraged to use the AUR package instead.
 
 ## Contributing
 
