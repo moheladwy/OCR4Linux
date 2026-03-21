@@ -8,7 +8,7 @@ OCR4Linux is a versatile text extraction tool that allows you to take a screensh
 
 ## Motivation
 
-I didn't find any easy tool in Linux that does the same thing as the PowerTool app in Windows. This motivated me to create OCR4Linux, a simple and efficient tool to capture screenshots, extract text, and copy it to the clipboard, all in one seamless process.
+I didn't find any easy tool in Linux that does the same thing as the PowerToys app in Windows. This motivated me to create OCR4Linux, a simple and efficient tool to capture screenshots, extract text, and copy it to the clipboard, all in one seamless process.
 
 ## Features
 
