@@ -1,7 +1,7 @@
 #!/bin/bash
 # ========================================================================================================================
 # Author: Mohamed Hussein Al-Adawy
-# Version: 1.4.1
+# Version: 1.4.2
 # Description:
 #     OCR4Linux is a versatile text extraction tool for Linux systems that:
 #     1. Takes screenshots of selected areas using:
@@ -33,10 +33,11 @@
 
 SCREENSHOT_NAME="screenshot_$(date +%d%m%Y_%H%M%S).jpg"
 SCREENSHOT_DIRECTORY="$HOME/Pictures/screenshots"
-OCR4Linux_HOME="$HOME/.config/OCR4Linux"
+OCR4Linux_HOME="$(pwd)"
 OCR4Linux_PYTHON_NAME="OCR4Linux.py"
-TEXT_OUTPUT_FILE_NAME="output_text.txt"
-LOGS_FILE_NAME="OCR4Linux.log"
+OCR4Linux_CONFIG="$HOME/.config/OCR4Linux"
+TEXT_OUTPUT_FILE_NAME="$OCR4Linux_CONFIG/output_text.txt"
+LOGS_FILE_NAME="$OCR4Linux_CONFIG/OCR4Linux.log"
 SLEEP_DURATION=0.5
 REMOVE_SCREENSHOT=false
 KEEP_LOGS=false
@@ -53,19 +54,8 @@ log_message() {
     if [ "$KEEP_LOGS" = true ]; then
         {
             echo "$message"
-        } >>"$OCR4Linux_HOME/$LOGS_FILE_NAME"
+        } >>"$LOGS_FILE_NAME"
     fi
-}
-
-# Perform update by running setup.sh from source directory
-perform_update() {
-    echo "To perform a full update, please git pull the latest version from the GitHub repository:"
-    echo "1) cd ~/src/OCR4Linux # If you haven't cloned it yet, run: git clone https://github.com/moheladwy/OCR4Linux.git ~/src/OCR4Linux"
-    echo "2) git pull"
-    echo "3) Then run the setup script:"
-    echo "4) chmod +x ./setup.sh"
-    echo "5) ./setup.sh"
-    echo "The setup script will update the OCR4Linux scripts and dependencies to the latest version."
 }
 
 # Display help message
@@ -75,66 +65,58 @@ show_help() {
     echo "  -r                Remove screenshot in the screenshot directory"
     echo "  -d DIRECTORY      Set screenshot directory (default: $SCREENSHOT_DIRECTORY)"
     echo "  -l                Keep logs"
-    echo "  -u, --update      Update OCR4Linux (scripts and dependencies)"
     echo "  --lang LANGUAGES  Specify OCR languages (e.g., 'all', 'eng', 'eng+ara')"
     echo "  -h                Show this help message, then exit"
     echo "Example:"
     echo "  OCR4Linux.sh -d $HOME/screenshots -l"
     echo "  OCR4Linux.sh --lang eng+ara"
     echo "  OCR4Linux.sh --lang all -l"
-    echo "  OCR4Linux.sh -u"
-    echo "  OCR4Linux.sh --update"
     echo "  OCR4Linux.sh -h"
     echo "Note:"
     echo "  - If --lang is not specified, an interactive language selection menu will appear"
     echo "  - Use 'all' to select all available languages"
     echo "  - Use '+' to separate multiple languages (e.g., 'eng+ara+fra')"
     echo "  - Without arguments, screenshots are saved to $SCREENSHOT_DIRECTORY"
-    echo "  - The -u or --update option gives instructions on how to update OCR4Linux."
 }
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
-        -r)
-            REMOVE_SCREENSHOT=true
-            shift
-            ;;
-        -d)
-            SCREENSHOT_DIRECTORY="$2"
-            shift 2
-            ;;
-        -l)
-            KEEP_LOGS=true
-            shift
-            ;;
-        -u|--update)
-            perform_update
-            exit 0
-            ;;
-        --lang)
-            SPECIFIED_LANGS="$2"
-            LANG_SPECIFIED=true
-            shift 2
-            ;;
-        -h)
-            show_help
-            exit 0
-            ;;
-        *)
-            echo "Unknown option: $1"
-            show_help
-            exit 1
-            ;;
+    -r)
+        REMOVE_SCREENSHOT=true
+        shift
+        ;;
+    -d)
+        SCREENSHOT_DIRECTORY="$2"
+        shift 2
+        ;;
+    -l)
+        KEEP_LOGS=true
+        shift
+        ;;
+    --lang)
+        SPECIFIED_LANGS="$2"
+        LANG_SPECIFIED=true
+        shift 2
+        ;;
+    -h)
+        show_help
+        exit 0
+        ;;
+    *)
+        echo "Unknown option: $1"
+        show_help
+        exit 1
+        ;;
     esac
 done
 
-# Check if the required files exist.
-check_if_files_exist() {
+# Check if the required files/binaries exist.
+check_if_requirements_exists() {
     log_message "Checking required files and directories..."
 
     # Check if rofi is installed
-    if ! command -v rofi &> /dev/null; then
+    if ! command -v rofi &>/dev/null; then
         log_message "ERROR: rofi is not installed. Please install rofi to use language selection."
         exit 1
     fi
@@ -160,21 +142,43 @@ check_if_files_exist() {
         log_message "ERROR: $OCR4Linux_PYTHON_NAME not found in $OCR4Linux_HOME"
         exit 1
     fi
+
+    # Validate config directory
+    if [ ! -d "$OCR4Linux_CONFIG" ]; then
+        log_message "Creating config directory: $OCR4Linux_CONFIG since it does not exist."
+        if ! mkdir -p "$OCR4Linux_CONFIG"; then
+            log_message "ERROR: Failed to create directory $OCR4Linux_CONFIG"
+            exit 1
+        fi
+        log_message "Successfully created config directory: $OCR4Linux_CONFIG"
+    fi
+
+    # Check if the directory is writable
+    if [ ! -w "$OCR4Linux_CONFIG" ]; then
+        log_message "ERROR: $OCR4Linux_CONFIG is not writable"
+        exit 1
+    fi
 }
 
 # Process specified languages from command line
 process_specified_langs() {
     log_message "Processing specified languages: $SPECIFIED_LANGS"
-    
+
     # Handle "all" case
     if [[ "$SPECIFIED_LANGS" == "all" ]]; then
         mapfile -t langs < <(tesseract --list-langs | awk 'FNR>1')
-        log_message "Using ALL available languages: $(IFS=+ ; echo "${langs[*]}")"
+        log_message "Using ALL available languages: $(
+            IFS=+
+            echo "${langs[*]}"
+        )"
     else
         # Split the language string by '+' and populate the langs array
-        IFS='+' read -ra langs <<< "$SPECIFIED_LANGS"
-        log_message "Using specified languages: $(IFS=+ ; echo "${langs[*]}")"
-        
+        IFS='+' read -ra langs <<<"$SPECIFIED_LANGS"
+        log_message "Using specified languages: $(
+            IFS=+
+            echo "${langs[*]}"
+        )"
+
         # Validate that the specified languages are available
         available_langs=$(tesseract --list-langs | awk 'FNR>1')
         for lang in "${langs[@]}"; do
@@ -188,7 +192,7 @@ process_specified_langs() {
 # Choose languages for OCR using rofi
 choose_lang() {
     log_message "Fetching available languages for OCR selection..."
-    
+
     # Get available languages and add "ALL" option at the beginning
     mapfile -t langs < <(tesseract --list-langs | awk 'BEGIN {print "ALL" } FNR>1' | rofi -dmenu -multi-select -p "Select OCR Languages:")
 
@@ -200,9 +204,15 @@ choose_lang() {
     # If "ALL" is selected, use all available languages
     if [[ " ${langs[*]} " =~ " ALL " ]]; then
         mapfile -t langs < <(tesseract --list-langs | awk 'FNR>1')
-        log_message "Selected ALL languages: $(IFS=+ ; echo "${langs[*]}")"
+        log_message "Selected ALL languages: $(
+            IFS=+
+            echo "${langs[*]}"
+        )"
     else
-        log_message "Selected languages: $(IFS=+ ; echo "${langs[*]}")"
+        log_message "Selected languages: $(
+            IFS=+
+            echo "${langs[*]}"
+        )"
     fi
 }
 
@@ -236,18 +246,21 @@ extract_text() {
     # Create language string for passing to Python script
     local lang_string=""
     if [ ${#langs[@]} -gt 0 ]; then
-        lang_string=$(IFS=+; echo "${langs[*]}")
+        lang_string=$(
+            IFS=+
+            echo "${langs[*]}"
+        )
     fi
-    
+
     if [ -n "$lang_string" ]; then
         python "$OCR4Linux_HOME/$OCR4Linux_PYTHON_NAME" \
             "$SCREENSHOT_DIRECTORY/$SCREENSHOT_NAME" \
-            "$OCR4Linux_HOME/$TEXT_OUTPUT_FILE_NAME" \
+            "$TEXT_OUTPUT_FILE_NAME" \
             --langs "$lang_string"
     else
         python "$OCR4Linux_HOME/$OCR4Linux_PYTHON_NAME" \
             "$SCREENSHOT_DIRECTORY/$SCREENSHOT_NAME" \
-            "$OCR4Linux_HOME/$TEXT_OUTPUT_FILE_NAME"
+            "$TEXT_OUTPUT_FILE_NAME"
     fi
     log_message "Text extraction completed successfully"
 }
@@ -255,7 +268,7 @@ extract_text() {
 # Copy the extracted text to clipboard using wl-copy and cliphist.
 copy_to_wayland_clipboard() {
     log_message "Copying extracted text to Wayland clipboard using wl-copy and cliphist..."
-    cliphist store <"$OCR4Linux_HOME/$TEXT_OUTPUT_FILE_NAME"
+    cliphist store <"$TEXT_OUTPUT_FILE_NAME"
     cliphist list | head -n 1 | cliphist decode | wl-copy
     log_message "Extracted text copied to Wayland clipboard successfully."
 }
@@ -263,8 +276,8 @@ copy_to_wayland_clipboard() {
 # Copy the extracted text to clipboard using xclip.
 copy_to_x11_clipboard() {
     log_message "Copying extracted text to X11 clipboard using xclip..."
-    xclip -selection clipboard -i "$OCR4Linux_HOME/$TEXT_OUTPUT_FILE_NAME"
-    xclip -selection primary   -i "$OCR4Linux_HOME/$TEXT_OUTPUT_FILE_NAME"
+    xclip -selection clipboard -i "$TEXT_OUTPUT_FILE_NAME"
+    xclip -selection primary -i "$TEXT_OUTPUT_FILE_NAME"
     log_message "Extracted text copied to X11 clipboard successfully."
 }
 
@@ -275,7 +288,7 @@ run_copy_to_clipboard() {
     else
         copy_to_x11_clipboard
     fi
-    rm "$OCR4Linux_HOME/$TEXT_OUTPUT_FILE_NAME"
+    rm "$TEXT_OUTPUT_FILE_NAME"
     log_message "The extracted text has been copied to the clipboard."
 }
 
@@ -289,15 +302,15 @@ remove_image() {
 
 # Run the functions
 main() {
-    check_if_files_exist
-    
+    check_if_requirements_exists
+
     # Handle language selection
     if [ "$LANG_SPECIFIED" = true ]; then
         process_specified_langs
     else
         choose_lang
     fi
-    
+
     takescreenshot
     extract_text
     run_copy_to_clipboard
