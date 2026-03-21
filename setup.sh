@@ -2,14 +2,14 @@
 # ========================================================================================================================
 # Author:
 #     Mohamed Hussein Al-Adawy
-# Version: 1.4.1
+# Version: 1.4.2
 # Description:
 #     This setup script installs and configures OCR4Linux and its dependencies.
 #     It handles the installation of:
-#       1. System requirements (tesseract, python packages)
+#       1. System requirements (tesseract, python packages, rofi)
 #       2. Session-specific tools:
-#          - Wayland: grimblast, wl-clipboard, cliphist, rofi-wayland
-#          - X11: xclip, scrot, rofi
+#          - Wayland: grimblast, wl-clipboard, cliphist
+#          - X11: xclip, scrot
 #
 # Features:
 #     - Automatic detection and installation of AUR helper (yay)
@@ -38,17 +38,16 @@ sys_requirements=(
     python-pillow
     python-pytesseract
     python-opencv
+    rofi
 )
 wayland_session_apps=(
     grimblast-git
     wl-clipboard
     cliphist
-    rofi-wayland
 )
 x11_session_apps=(
     xclip
     scrot
-    rofi
 )
 
 # Check if yay is installed.
@@ -88,9 +87,26 @@ install_requirements() {
 }
 
 # Main function.
+print_help() {
+    echo "OCR4Linux Setup Script"
+    echo "This script will manually install and configure OCR4Linux and its dependencies."
+    echo "Note: This script is designed for manual installations."
+    echo "For Arch-based Linux users, it is recommended to install OCR4Linux using the AUR package \"ocr4linux\"."
+}
+
 main() {
     echo "========================================================================================================"
     echo "Starting OCR4Linux setup..."
+    echo "========================================================================================================"
+    print_help
+
+    # Ask the user whether to proceed with manual installation
+    read -r -p "Do you want to continue with the manual installation? (y/n): " confirm
+    if [[ ! $confirm =~ ^[Yy]$ ]]; then
+        echo "Aborting setup. Use the AUR package 'ocr4linux' for Arch-based systems."
+        exit 0
+    fi
+
     echo "========================================================================================================"
     check_yay
     echo "========================================================================================================"

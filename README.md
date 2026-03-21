@@ -1,6 +1,6 @@
 # OCR4Linux
 
-**Version:** 1.4.1
+**Version:** 1.4.2
 
 OCR4Linux is a versatile text extraction tool that allows you to take a screenshot of a selected area, extract text using OCR, and copy it to the clipboard. It supports both Wayland and X11 sessions and offers multiple language support.
 

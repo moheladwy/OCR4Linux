@@ -6,6 +6,12 @@ __pycache__/
 # C extensions
 *.so
 
+# Arch Linux build
+pkg/
+src/
+*-any.pkg.*
+*.tar.gz
+
 # Distribution / packaging
 .Python
 build/
