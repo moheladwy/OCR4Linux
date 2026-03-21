@@ -9,6 +9,7 @@ __pycache__/
 # Arch Linux build
 pkg/
 src/
+ocr4linux-git/
 *-any.pkg.*
 *.tar.gz
 
