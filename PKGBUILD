@@ -1,5 +1,5 @@
 # Maintainer: moheladwy <mohamed.h.eladwy@gmail.com>
-pkgname=ocr4linux
+pkgname=ocr4linux-git
 pkgver=1.4.2
 pkgrel=1
 pkgdesc="OCR Script CLI Tool for Extracting Text from Screenshots using bash and python"
