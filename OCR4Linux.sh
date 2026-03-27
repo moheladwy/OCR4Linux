@@ -1,7 +1,7 @@
 #!/bin/bash
 # ========================================================================================================================
 # Author: Mohamed Hussein Al-Adawy
-# Version: 1.4.2
+# Version: 1.5.0
 # Description:
 #     OCR4Linux is a versatile text extraction tool for Linux systems that:
 #     1. Takes screenshots of selected areas using:
@@ -44,9 +44,10 @@ LOGS_FILE_NAME="$OCR4Linux_CONFIG/OCR4Linux.log"
 SLEEP_DURATION=0.5
 REMOVE_SCREENSHOT=false
 KEEP_LOGS=false
+SHOW_NOTIFICATION=false
 LANG_SPECIFIED=false
 SPECIFIED_LANGS=""
-VERSION="v1.4.2"
+VERSION="v1.5.0"
 
 langs=()
 
@@ -69,11 +70,13 @@ show_help() {
     echo "  -r                Remove screenshot in the screenshot directory"
     echo "  -d DIRECTORY      Set screenshot directory (default: $SCREENSHOT_DIRECTORY)"
     echo "  -l                Keep logs"
+    echo "  -n | --notify     Show notification after taking the screenshot"
     echo "  --lang LANGUAGES  Specify OCR languages (e.g., 'all', 'eng', 'eng+ara')"
     echo "  -v | --version    Print the package version, then exist"
     echo "  -h | --help       Show this help message, then exit"
     echo "Example:"
     echo "  OCR4Linux.sh -d $HOME/screenshots -l"
+    echo "  OCR4Linux.sh --notify"
     echo "  OCR4Linux.sh --lang eng+ara"
     echo "  OCR4Linux.sh --lang all -l"
     echo "  OCR4Linux.sh -h"
@@ -98,6 +101,10 @@ while [[ $# -gt 0 ]]; do
         ;;
     -l)
         KEEP_LOGS=true
+        shift
+        ;;
+    -n|--notify)
+        SHOW_NOTIFICATION=true
         shift
         ;;
     --lang)
@@ -230,7 +237,11 @@ choose_lang() {
 takescreenshot_wayland() {
     log_message "Taking screenshot using grimblast for Wayland..."
     sleep $SLEEP_DURATION
-    grimblast --notify copysave area "$SCREENSHOT_DIRECTORY/$SCREENSHOT_NAME"
+    if [ "$SHOW_NOTIFICATION" = true ]; then
+        grimblast --notify copysave area "$SCREENSHOT_DIRECTORY/$SCREENSHOT_NAME"
+    else
+        grimblast copysave area "$SCREENSHOT_DIRECTORY/$SCREENSHOT_NAME"
+    fi
     log_message "Screenshot saved to $SCREENSHOT_DIRECTORY/$SCREENSHOT_NAME in wayland session"
 }
 
@@ -239,6 +250,9 @@ takescreenshot_x11() {
     log_message "Taking screenshot using scrot for X11..."
     sleep $SLEEP_DURATION
     scrot -s -Z 0 -o -F "$SCREENSHOT_DIRECTORY/$SCREENSHOT_NAME"
+    if [ "$SHOW_NOTIFICATION" = true ]; then
+        notify-send "OCR4Linux" "Screenshot saved to $SCREENSHOT_DIRECTORY/$SCREENSHOT_NAME" -i camera-photo
+    fi
     log_message "Screenshot saved to $SCREENSHOT_DIRECTORY/$SCREENSHOT_NAME in x11 session"
 }
 

@@ -2,7 +2,7 @@
 # ========================================================================================================================
 # Author:
 #     Mohamed Hussein Al-Adawy
-# Version: 1.4.2
+# Version: 1.5.0
 # Description:
 #     This setup script installs and configures OCR4Linux and its dependencies.
 #     It handles the installation of:
@@ -33,6 +33,7 @@ sys_requirements=(
     tesseract
     tesseract-data-eng
     tesseract-data-ara
+    libnotify
     python
     python-numpy
     python-pillow
