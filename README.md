@@ -1,6 +1,6 @@
 # OCR4Linux
 
-**Version:** 1.4.2
+**Version:** 1.5.0
 
 OCR4Linux is a versatile text extraction tool that allows you to take a screenshot of a selected area, extract text using OCR, and copy it to the clipboard. It supports both Wayland and X11 sessions and offers multiple language support.
 
@@ -73,7 +73,7 @@ I didn't find any easy tool in Linux that does the same thing as the PowerToys a
 
 ### Option 1: Install from AUR (Recommended)
 
-The easiest way to install OCR4Linux on Arch Linux or any Arch-based distribution is directly from the AUR:
+The easiest way to install OCR4Linux on Arch Linux or any Arch-based distribution is directly from the AUR using any AUR helper (e.g., `yay`, `paru`):
 
 ```sh
 yay -S ocr4linux-git
@@ -81,7 +81,9 @@ yay -S ocr4linux-git
 
 This will automatically install OCR4Linux and all its required dependencies.
 
-### Option 2: Manual Installation
+### Option 2: Build from Source (makepkg)
+
+You can clone the repository and build the package manually using `makepkg`:
 
 1. Clone the repository:
 
@@ -90,7 +92,24 @@ This will automatically install OCR4Linux and all its required dependencies.
     cd OCR4Linux
     ```
 
-2. Run the setup script to install the required packages and copy the necessary files to the configuration directory:
+2. Build and install the package:
+
+    ```sh
+    makepkg -si
+    ```
+
+### Option 3: Manual Installation (setup.sh)
+
+If you prefer a local installation in your home directory or want to use the automated setup script:
+
+1. Clone the repository:
+
+    ```sh
+    git clone https://github.com/moheladwy/OCR4Linux.git
+    cd OCR4Linux
+    ```
+
+2. Run the setup script:
 
     ```sh
     chmod +x setup.sh
@@ -106,17 +125,20 @@ This will automatically install OCR4Linux and all its required dependencies.
 
 ## Usage
 
-1. Run the main script to take a screenshot, extract text, and copy it to the clipboard:
+1. Run the tool to take a screenshot, extract text, and copy it to the clipboard:
 
+    If installed via AUR or `makepkg`:
     ```sh
-    chmod +x ~/.config/OCR4Linux/OCR4Linux.sh
+    OCR4Linux
+    ```
+
+    If installed via `setup.sh`:
+    ```sh
     ~/.config/OCR4Linux/OCR4Linux.sh
     ```
 
-    Or if you're in the OCR4Linux directory:
-
+    Or if you're in the source directory:
     ```sh
-    chmod +x OCR4Linux.sh
     ./OCR4Linux.sh
     ```
 
@@ -174,6 +196,7 @@ The complete OCR4Linux workflow:
 | `-r`               | Remove screenshot after processing    | `false`                      |
 | `-d DIR`           | Set screenshot directory              | `$HOME/Pictures/screenshots` |
 | `-l`               | Keep logs                             | `false`                      |
+| `-n, --notify`     | Show notification after screenshot    | `false`                      |
 | `--lang LANGUAGES` | Specify OCR languages (bypasses rofi) | Interactive selection        |
 | `-v, --version`    | Print the package version, then exit  | -                            |
 | `-h, --help`       | Show help message, then exit          | -                            |
@@ -200,33 +223,35 @@ The complete OCR4Linux workflow:
 
 ---
 
-#### Using OCR4Linux.sh
+#### Using OCR4Linux
 
 ```sh
 # Basic usage (shows interactive rofi menu)
-./OCR4Linux.sh
+OCR4Linux
 
 # Direct language specification (bypasses rofi)
-./OCR4Linux.sh --lang eng
-./OCR4Linux.sh --lang all
-./OCR4Linux.sh --lang eng+ara+fra
+OCR4Linux --lang eng
+OCR4Linux --lang all
+OCR4Linux --lang eng+ara+fra
 
 # Save logs and remove screenshot after processing
-./OCR4Linux.sh -l -r
+OCR4Linux -l -r
 
-# Custom screenshot directory with logging
-./OCR4Linux.sh -d ~/Documents/screenshots -l
+# Custom screenshot directory with logging and notification
+OCR4Linux -d ~/Documents/screenshots -l -n
 
 # Combine language specification with other options
-./OCR4Linux.sh --lang eng -l -r
-./OCR4Linux.sh --lang all -d ~/screenshots -l
+OCR4Linux --lang eng -l -r
+OCR4Linux --lang all -d ~/screenshots -l
 
 # Print version
-./OCR4Linux.sh -v
+OCR4Linux -v
 
 # Show help
-./OCR4Linux.sh -h
+OCR4Linux -h
 ```
+
+**Note:** If you are running the script manually without installation, replace `OCR4Linux` with `./OCR4Linux.sh`.
 
 #### Using OCR4Linux.py
 
@@ -269,18 +294,19 @@ python OCR4Linux.py --help
     -   Use `--lang all` only when document language is unknown
     -   Command-line specification is faster than interactive selection
 
--   **Keyboard Shortcuts**: You can create a keyboard shortcut to run the script for easy access.
+- **Keyboard Shortcuts**: You can create a keyboard shortcut to run the script for easy access.
 
     ### Example for `Hyprland` users:
 
     -   put the following lines in your `hyprland.conf` file:
 
         ```conf
-        $OCR4Linux = ~/.config/OCR4Linux/OCR4Linux.sh
-        $OCR4Linux_ENG = ~/.config/OCR4Linux/OCR4Linux.sh --lang eng
+        # If installed via AUR/makepkg
+        bind = $mainMod SHIFT, E, exec, OCR4Linux # OCR4Linux with interactive selection
+        bind = $mainMod SHIFT, T, exec, OCR4Linux --lang eng # OCR4Linux with English only
 
-        bind = $mainMod SHIFT, E, exec, $OCR4Linux # OCR4Linux with interactive selection
-        bind = $mainMod SHIFT, T, exec, $OCR4Linux_ENG # OCR4Linux with English only
+        # If installed via setup.sh
+        # bind = $mainMod SHIFT, E, exec, ~/.config/OCR4Linux/OCR4Linux.sh
         ```
 
     ### Example for `dwm` users:
@@ -288,12 +314,14 @@ python OCR4Linux.py --help
     -   put the following lines in your `config.h` file:
 
         ```c
-        static const char *ocr4linux[] = { "sh", "-c", "~/.config/OCR4Linux/OCR4Linux.sh", NULL };
-        static const char *ocr4linux_eng[] = { "sh", "-c", "~/.config/OCR4Linux/OCR4Linux.sh --lang eng", NULL };
+        /* If installed via AUR/makepkg */
+        static const char *ocr4linux[] = { "OCR4Linux", NULL };
+        static const char *ocr4linux_eng[] = { "OCR4Linux", "--lang", "eng", NULL };
 
         { MODKEY | ShiftMask, XK_e, spawn, {.v = ocr4linux } },      // OCR4Linux interactive
         { MODKEY | ShiftMask, XK_t, spawn, {.v = ocr4linux_eng } },  // OCR4Linux English only
         ```
+
 
 -   **Language Optimization**: For best results:
     -   Select only the languages present in your document
