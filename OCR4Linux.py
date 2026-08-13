@@ -3,29 +3,28 @@
 #     Mohamed Hussein Al-Adawy
 # Version: 1.5.0
 # Description:
-#     OCR4Linux.py is a Python script that handles image preprocessing and text extraction using Tesseract OCR.
-#     The script takes an input image, processes it for optimal OCR accuracy, and extracts text while preserving
-#     line breaks and layout.
+#     OCR4Linux.py is a Python script that extracts text from an image using Tesseract OCR.
+#     The script takes an input image and extracts text from it while preserving line breaks
+#     and layout.
 #
 # Features:
-#     - Image preprocessing (grayscale conversion, thresholding, noise removal)
 #     - Text extraction with layout preservation
-#     - Confidence-based filtering for improved accuracy
+#     - Selectable OCR languages, defaulting to every language installed on the system
 #     - Support for multiple image formats
 #     - UTF-8 text output
 #
 # Dependencies:
 #     - PIL (Python Imaging Library)
 #     - pytesseract
-#     - OpenCV (cv2)
-#     - numpy
 #
 # Class Structure:
 #     TesseractConfig:
-#         - preprocess_image(): Enhances image quality for better OCR
 #         - extract_text_with_lines(): Extracts text while preserving layout
-#         - help(): Displays usage instructions
 #         - main(): Orchestrates the OCR process
+#     Program:
+#         - help(): Displays usage instructions
+#         - check_arguments(): Validates the command-line arguments
+#         - main(): Entry point that wires everything together
 #
 # Usage:
 #     python OCR4Linux.py <image_path> <output_path>
@@ -40,6 +39,30 @@ from PIL import Image
 import pytesseract
 
 
+class TesseractUnavailableError(RuntimeError):
+    """Raised when Tesseract cannot be reached or is misconfigured."""
+
+
+def get_available_languages() -> list:
+    """
+    Queries Tesseract for the languages installed on this system.
+
+    Returns:
+        list: The names of the installed languages.
+
+    Raises:
+        TesseractUnavailableError: If the tesseract binary is missing or its
+            tessdata directory cannot be read.
+    """
+    try:
+        return [lang for lang in pytesseract.get_languages() if lang]
+    except Exception as e:
+        raise TesseractUnavailableError(
+            "Could not query Tesseract for its installed languages. Make sure "
+            "the 'tesseract' binary is installed and that TESSDATA_PREFIX "
+            f"points to a valid tessdata directory. Details: {e}") from e
+
+
 class TesseractConfig:
     """
     TesseractConfig is a class that configures and uses Tesseract OCR to extract text from images.
@@ -51,6 +74,9 @@ class TesseractConfig:
     Methods:
         __init__(self, image_path: str, output_path: str):
             Initializes the TesseractConfig class with the provided image and output file paths.
+
+        validate_langs(langs: str) -> str:
+            Checks that every requested language is installed, raising ValueError otherwise.
 
         extract_text_with_lines(image: Image) -> str:
             Uses Tesseract OCR to extract text from the provided image, preserving line breaks.
@@ -77,20 +103,47 @@ class TesseractConfig:
         self.output_path = output_path
         self.oem_mode = 3  # Default LSTM engine
         self.psm_mode = 6  # Uniform block of text
-        self.available_langs = pytesseract.get_languages()
+        self.available_langs = get_available_languages()
 
         # Use provided languages or default to all available languages
         if langs and langs.strip():
-            self.langs = langs
-            print(f"Using specified languages: {langs}", file=sys.stderr)
+            self.langs = self.validate_langs(langs)
+            print(f"Using specified languages: {self.langs}", file=sys.stderr)
         else:
-            self.langs = '+'.join(filter(None, self.available_langs)
-                                  ) if self.available_langs else 'eng'
+            self.langs = '+'.join(
+                self.available_langs) if self.available_langs else 'eng'
             print(
                 f"Using all available languages: {self.langs}", file=sys.stderr)
 
         self.custom_config = f'--oem {self.oem_mode} --psm {self.psm_mode}'
         self.output_encoding = 'utf-8'
+
+    def validate_langs(self, langs: str) -> str:
+        """
+        Checks that every language in a '+' separated string is installed.
+
+        Args:
+            langs: A '+' separated list of Tesseract language names.
+
+        Returns:
+            str: The normalized '+' separated language string.
+
+        Raises:
+            ValueError: If the string is empty or names a language that is not
+                installed on this system.
+        """
+        requested = [lang for lang in langs.split('+') if lang.strip()]
+        if not requested:
+            raise ValueError("No languages were specified")
+
+        missing = [
+            lang for lang in requested if lang not in self.available_langs]
+        if missing:
+            raise ValueError(
+                f"Language(s) not installed: {', '.join(missing)}. "
+                f"Available languages: {', '.join(self.available_langs)}")
+
+        return '+'.join(requested)
 
     def extract_text_with_lines(self, image: Image.Image) -> str:
         """
@@ -228,15 +281,58 @@ class Program:
             # 3 args: script image_path output_path
             # 4 args: script image_path output_path --langs=languages
             # 5 args: script image_path output_path --langs languages
+            print(
+                f"Error: expected 2 to 4 arguments, got {len(sys.argv) - 1}",
+                file=sys.stderr)
             self.help()
             return 1
         return 2
+
+    def parse_langs(self) -> tuple:
+        """
+        Parses the optional --langs argument from the trailing arguments.
+
+        Accepts either '--langs <languages>' or '--langs=<languages>' and
+        rejects anything else instead of silently ignoring it.
+
+        Returns:
+            tuple: (ok, langs) where ok is False when the trailing arguments
+                are malformed and langs is None when --langs was not given.
+        """
+        trailing = sys.argv[3:]
+
+        if not trailing:
+            return True, None
+
+        if len(trailing) == 1:
+            if trailing[0] == '--langs':
+                print("Error: --langs requires a value (e.g. --langs eng+ara)",
+                      file=sys.stderr)
+                return False, None
+            if not trailing[0].startswith('--langs='):
+                print(f"Error: unrecognized argument '{trailing[0]}'",
+                      file=sys.stderr)
+                return False, None
+            langs = trailing[0].split('=', 1)[1]
+        elif trailing[0] == '--langs':
+            langs = trailing[1]
+        else:
+            print(f"Error: unrecognized argument '{trailing[0]}'",
+                  file=sys.stderr)
+            return False, None
+
+        if not langs.strip():
+            print("Error: --langs requires a non-empty value (e.g. eng+ara)",
+                  file=sys.stderr)
+            return False, None
+
+        return True, langs
 
     def list_available_languages(self) -> None:
         """
         Displays all available languages for Tesseract OCR.
         """
-        langs = pytesseract.get_languages()
+        langs = get_available_languages()
         if not langs:
             print("Error: No languages found")
             return
@@ -271,29 +367,38 @@ class Program:
         4. Creates an instance of the TesseractConfig class and runs the OCR process.
 
         Returns:
-            int: Returns 1 if there is an error with the arguments or image path, otherwise returns the result of the TesseractConfig main function.
+            int: Returns 1 if there is an error with the arguments, the image path,
+            the requested languages or the Tesseract installation, otherwise returns
+            the result of the TesseractConfig main function.
         """
-        # Check if the correct number of arguments is provided
-        result = self.check_arguments()
-        if result == 1:
+        try:
+            # Check if the correct number of arguments is provided
+            result = self.check_arguments()
+            if result == 1:
+                return 1
+            elif result == 0:
+                return 0
+
+            # Check if the image file exists
+            if not self.check_image_path(sys.argv[1]):
+                return 1
+
+            # Parse language arguments
+            ok, langs = self.parse_langs()
+            if not ok:
+                self.help()
+                return 1
+
+            # Create an instance of the TesseractConfig class
+            tesseract = TesseractConfig(sys.argv[1], sys.argv[2], langs)
+            return tesseract.main()
+
+        except TesseractUnavailableError as e:
+            print(f"Error: {e}", file=sys.stderr)
             return 1
-        elif result == 0:
-            return 0
-
-        # Check if the image file exists
-        if not self.check_image_path(sys.argv[1]):
+        except ValueError as e:
+            print(f"Error: {e}", file=sys.stderr)
             return 1
-
-        # Parse language arguments
-        langs = None
-        if len(sys.argv) >= 4 and sys.argv[3] == '--langs' and len(sys.argv) == 5:
-            langs = sys.argv[4]
-        elif len(sys.argv) == 4 and sys.argv[3].startswith('--langs='):
-            langs = sys.argv[3].split('=', 1)[1]
-
-        # Create an instance of the TesseractConfig class
-        tesseract = TesseractConfig(sys.argv[1], sys.argv[2], langs)
-        return tesseract.main()
 
 
 if __name__ == "__main__":

@@ -23,7 +23,7 @@ I didn't find any easy tool in Linux that does the same thing as the PowerToys a
     -   Interactive language selection via `rofi`
     -   Multi-language OCR support with custom language combinations
     -   Automatic language detection fallback
-    -   Image preprocessing for better accuracy
+    -   Validation of requested languages against the ones installed
     -   UTF-8 text output
 
 -   **Clipboard Integration**
@@ -330,7 +330,7 @@ python OCR4Linux.py --help
 
 ## Files
 
--   [OCR4Linux.py](https://github.com/moheladwy/OCR4Linux/blob/main/OCR4Linux.py): Python script to preprocess the image and extract text using `tesseract` with support for custom language selection.
+-   [OCR4Linux.py](https://github.com/moheladwy/OCR4Linux/blob/main/OCR4Linux.py): Python script to extract text from the image using `tesseract` with support for custom language selection.
 -   [OCR4Linux.sh](https://github.com/moheladwy/OCR4Linux/blob/main/OCR4Linux.sh): Shell script that provides both interactive language selection via rofi and direct command-line language specification, takes a screenshot, passes it to the python script with selected languages, gets the extracted text, and copies it to the clipboard.
 -   [setup.sh](https://github.com/moheladwy/OCR4Linux/blob/main/setup.sh): Shell script to install the required packages and copy the necessary files to the configuration directory. Intended for manual installation only — Arch-based users are encouraged to use the AUR package instead.
 

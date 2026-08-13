@@ -28,6 +28,19 @@
 #     Follow the prompts to install dependencies
 # ========================================================================================================================
 
+set -euo pipefail
+
+# Resolve the repository root so the script works from any working directory.
+SETUP_SCRIPT_PATH=$(realpath "$0")
+REPO_ROOT="$(dirname "$SETUP_SCRIPT_PATH")"
+CONFIG_DIR="$HOME/.config/OCR4Linux"
+
+# The files that actually make up an OCR4Linux installation.
+install_files=(
+    OCR4Linux.sh
+    OCR4Linux.py
+)
+
 # Define the required packages.
 sys_requirements=(
     tesseract
@@ -58,13 +71,18 @@ check_yay() {
         read -r -p "yay is not installed. Do you want to install yay? (y/n): " choice
         if [ "$choice" = "y" ]; then
             sudo pacman -S --needed --noconfirm git base-devel
-            git clone https://aur.archlinux.org/yay.git
-            cd yay || exit
-            makepkg -si --noconfirm
+
+            # Build in a throwaway directory so nothing is left in the user's CWD.
+            local build_dir
+            build_dir=$(mktemp -d)
+
+            git clone --depth 1 https://aur.archlinux.org/yay.git "$build_dir/yay"
+            (cd "$build_dir/yay" && makepkg -si --noconfirm)
+            rm -rf "$build_dir"
             echo "yay has been installed successfully."
         else
-            echo "Please install yay first!"
-            return 1
+            echo "Please install yay first!" >&2
+            exit 1
         fi
     else
         echo "yay is already installed."
@@ -113,11 +131,17 @@ main() {
     echo "========================================================================================================"
     install_requirements
     echo "========================================================================================================"
-    # Copy the script to the user's home directory.
+    # Copy only the files OCR4Linux needs at runtime into the config directory.
     echo "Setting up OCR4Linux configuration..."
-    mkdir -p "$HOME/.config/OCR4Linux"
-    cp -r ./* "$HOME/.config/OCR4Linux"
-    echo "OCR4Linux has been set up successfully in $HOME/.config/OCR4Linux"
+    mkdir -p "$CONFIG_DIR"
+    for file in "${install_files[@]}"; do
+        if [ ! -f "$REPO_ROOT/$file" ]; then
+            echo "Error: $file not found in $REPO_ROOT" >&2
+            exit 1
+        fi
+        install -Dm755 "$REPO_ROOT/$file" "$CONFIG_DIR/$file"
+    done
+    echo "OCR4Linux has been set up successfully in $CONFIG_DIR"
     echo "Setup completed. You can now use OCR4Linux."
     echo "========================================================================================================"
 }
