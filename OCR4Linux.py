@@ -372,12 +372,11 @@ class Program:
             the result of the TesseractConfig main function.
         """
         try:
-            # Check if the correct number of arguments is provided
+            # Check if the correct number of arguments is provided.
+            # Anything other than 2 is a final exit code (0 for help, 1 for error).
             result = self.check_arguments()
-            if result == 1:
-                return 1
-            elif result == 0:
-                return 0
+            if result != 2:
+                return result
 
             # Check if the image file exists
             if not self.check_image_path(sys.argv[1]):
@@ -393,10 +392,7 @@ class Program:
             tesseract = TesseractConfig(sys.argv[1], sys.argv[2], langs)
             return tesseract.main()
 
-        except TesseractUnavailableError as e:
-            print(f"Error: {e}", file=sys.stderr)
-            return 1
-        except ValueError as e:
+        except (TesseractUnavailableError, ValueError) as e:
             print(f"Error: {e}", file=sys.stderr)
             return 1
 
