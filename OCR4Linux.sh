@@ -31,6 +31,8 @@
 #     See './OCR4Linux.sh -h' for more details
 # ========================================================================================================================
 
+set -euo pipefail
+
 SCREENSHOT_NAME="screenshot_$(date +%d%m%Y_%H%M%S).jpg"
 SCREENSHOT_DIRECTORY="$HOME/Pictures/screenshots"
 # Get the absolute path of the script itself, handling symlinks
@@ -56,10 +58,9 @@ log_message() {
     local message
     message="[$(date '+%Y-%m-%d %H:%M:%S')] $1"
     echo "$message" >&2
-    if [ "$KEEP_LOGS" = true ]; then
-        {
-            echo "$message"
-        } >>"$LOGS_FILE_NAME"
+    # Only append once the config directory exists; logging must never abort the run.
+    if [ "$KEEP_LOGS" = true ] && [ -d "$OCR4Linux_CONFIG" ]; then
+        echo "$message" >>"$LOGS_FILE_NAME" || true
     fi
 }
 
@@ -96,6 +97,11 @@ while [[ $# -gt 0 ]]; do
         shift
         ;;
     -d)
+        if [ $# -lt 2 ] || [ -z "$2" ]; then
+            echo "Error: -d requires a directory argument" >&2
+            show_help
+            exit 1
+        fi
         SCREENSHOT_DIRECTORY="$2"
         shift 2
         ;;
@@ -108,6 +114,11 @@ while [[ $# -gt 0 ]]; do
         shift
         ;;
     --lang)
+        if [ $# -lt 2 ] || [ -z "${2// /}" ]; then
+            echo "Error: --lang requires a non-empty value (e.g. 'all', 'eng', 'eng+ara')" >&2
+            show_help
+            exit 1
+        fi
         SPECIFIED_LANGS="$2"
         LANG_SPECIFIED=true
         shift 2
@@ -121,7 +132,7 @@ while [[ $# -gt 0 ]]; do
         exit 0
         ;;
     *)
-        echo "Unknown option: $1"
+        echo "Unknown option: $1" >&2
         show_help
         exit 1
         ;;
@@ -196,13 +207,20 @@ process_specified_langs() {
             echo "${langs[*]}"
         )"
 
-        # Validate that the specified languages are available
+        # Validate that the specified languages are available before doing any work
+        local available_langs missing_langs=()
         available_langs=$(tesseract --list-langs | awk 'FNR>1')
         for lang in "${langs[@]}"; do
-            if ! echo "$available_langs" | grep -q "^$lang$"; then
-                log_message "WARNING: Language '$lang' is not available on this system"
+            if ! grep -qxF -- "$lang" <<<"$available_langs"; then
+                missing_langs+=("$lang")
             fi
         done
+
+        if [ ${#missing_langs[@]} -gt 0 ]; then
+            log_message "ERROR: Language(s) not installed: ${missing_langs[*]}"
+            log_message "Available languages: $(tr '\n' ' ' <<<"$available_langs")"
+            exit 1
+        fi
     fi
 }
 
@@ -236,39 +254,62 @@ choose_lang() {
 # take shots using grimblast for wayland
 takescreenshot_wayland() {
     log_message "Taking screenshot using grimblast for Wayland..."
-    sleep $SLEEP_DURATION
+    sleep "$SLEEP_DURATION"
+
+    local status=0
     if [ "$SHOW_NOTIFICATION" = true ]; then
-        grimblast --notify copysave area "$SCREENSHOT_DIRECTORY/$SCREENSHOT_NAME"
+        grimblast --notify copysave area "$SCREENSHOT_DIRECTORY/$SCREENSHOT_NAME" || status=$?
     else
-        grimblast copysave area "$SCREENSHOT_DIRECTORY/$SCREENSHOT_NAME"
+        grimblast copysave area "$SCREENSHOT_DIRECTORY/$SCREENSHOT_NAME" || status=$?
     fi
+    [ "$status" -eq 0 ] || return "$status"
+
     log_message "Screenshot saved to $SCREENSHOT_DIRECTORY/$SCREENSHOT_NAME in wayland session"
 }
 
 # take shots using scrot for x11
 takescreenshot_x11() {
     log_message "Taking screenshot using scrot for X11..."
-    sleep $SLEEP_DURATION
-    scrot -s -Z 0 -o -F "$SCREENSHOT_DIRECTORY/$SCREENSHOT_NAME"
+    sleep "$SLEEP_DURATION"
+
+    local status=0
+    scrot -s -Z 0 -o -F "$SCREENSHOT_DIRECTORY/$SCREENSHOT_NAME" || status=$?
+    [ "$status" -eq 0 ] || return "$status"
+
     if [ "$SHOW_NOTIFICATION" = true ]; then
-        notify-send "OCR4Linux" "Screenshot saved to $SCREENSHOT_DIRECTORY/$SCREENSHOT_NAME" -i camera-photo
+        notify-send "OCR4Linux" "Screenshot saved to $SCREENSHOT_DIRECTORY/$SCREENSHOT_NAME" -i camera-photo || true
     fi
     log_message "Screenshot saved to $SCREENSHOT_DIRECTORY/$SCREENSHOT_NAME in x11 session"
 }
 
 # Run the screenshot functions based on the session type.
 takescreenshot() {
-    if [ "$XDG_SESSION_TYPE" = "wayland" ]; then
-        takescreenshot_wayland
+    local status=0
+    if [ "${XDG_SESSION_TYPE:-}" = "wayland" ]; then
+        takescreenshot_wayland || status=$?
     else
-        takescreenshot_x11
+        takescreenshot_x11 || status=$?
+    fi
+
+    if [ "$status" -ne 0 ]; then
+        log_message "CANCELLED: Screenshot capture failed or was aborted (exit code $status)"
+        exit 1
+    fi
+
+    # A cancelled area selection can still exit 0 while leaving nothing behind.
+    if [ ! -s "$SCREENSHOT_DIRECTORY/$SCREENSHOT_NAME" ]; then
+        log_message "CANCELLED: No screenshot was produced at $SCREENSHOT_DIRECTORY/$SCREENSHOT_NAME"
+        exit 1
     fi
 }
 
 # Pass the screenshot to OCR tool to extract text from the image.
 extract_text() {
+    # Start from a clean slate so a stale file can never be copied to the clipboard.
+    rm -f "$TEXT_OUTPUT_FILE_NAME"
+
     # Create language string for passing to Python script
-    local lang_string=""
+    local lang_string="" status=0
     if [ ${#langs[@]} -gt 0 ]; then
         lang_string=$(
             IFS=+
@@ -280,47 +321,87 @@ extract_text() {
         python "$OCR4Linux_HOME/$OCR4Linux_PYTHON_NAME" \
             "$SCREENSHOT_DIRECTORY/$SCREENSHOT_NAME" \
             "$TEXT_OUTPUT_FILE_NAME" \
-            --langs "$lang_string"
+            --langs "$lang_string" || status=$?
     else
         python "$OCR4Linux_HOME/$OCR4Linux_PYTHON_NAME" \
             "$SCREENSHOT_DIRECTORY/$SCREENSHOT_NAME" \
-            "$TEXT_OUTPUT_FILE_NAME"
+            "$TEXT_OUTPUT_FILE_NAME" || status=$?
     fi
+
+    if [ "$status" -ne 0 ]; then
+        log_message "ERROR: Text extraction failed (exit code $status)"
+        rm -f "$TEXT_OUTPUT_FILE_NAME"
+        exit 1
+    fi
+
+    if [ ! -f "$TEXT_OUTPUT_FILE_NAME" ]; then
+        log_message "ERROR: Text extraction produced no output at $TEXT_OUTPUT_FILE_NAME"
+        exit 1
+    fi
+
     log_message "Text extraction completed successfully"
 }
 
 # Copy the extracted text to clipboard using wl-copy and cliphist.
 copy_to_wayland_clipboard() {
     log_message "Copying extracted text to Wayland clipboard using wl-copy and cliphist..."
-    cliphist store <"$TEXT_OUTPUT_FILE_NAME"
-    cliphist list | head -n 1 | cliphist decode | wl-copy
+    local status=0 newest=""
+    cliphist store <"$TEXT_OUTPUT_FILE_NAME" || status=$?
+    # head closing the pipe early makes `cliphist list` exit non-zero under
+    # pipefail, so buffer the newest entry first instead of piping straight through.
+    [ "$status" -eq 0 ] && { newest=$(cliphist list | head -n 1) || status=$?; }
+    [ "$status" -eq 0 ] && { cliphist decode <<<"$newest" | wl-copy || status=$?; }
+    [ "$status" -eq 0 ] || return "$status"
+
     log_message "Extracted text copied to Wayland clipboard successfully."
 }
 
 # Copy the extracted text to clipboard using xclip.
 copy_to_x11_clipboard() {
     log_message "Copying extracted text to X11 clipboard using xclip..."
-    xclip -selection clipboard -i "$TEXT_OUTPUT_FILE_NAME"
-    xclip -selection primary -i "$TEXT_OUTPUT_FILE_NAME"
+    local status=0
+    xclip -selection clipboard -i "$TEXT_OUTPUT_FILE_NAME" || status=$?
+    [ "$status" -eq 0 ] && { xclip -selection primary -i "$TEXT_OUTPUT_FILE_NAME" || status=$?; }
+    [ "$status" -eq 0 ] || return "$status"
+
     log_message "Extracted text copied to X11 clipboard successfully."
 }
 
 # Run the copy to clipboard functions based on the session type.
 run_copy_to_clipboard() {
-    if [ "$XDG_SESSION_TYPE" = "wayland" ]; then
-        copy_to_wayland_clipboard
-    else
-        copy_to_x11_clipboard
+    if [ ! -f "$TEXT_OUTPUT_FILE_NAME" ]; then
+        log_message "ERROR: $TEXT_OUTPUT_FILE_NAME does not exist, nothing to copy"
+        exit 1
     fi
-    rm "$TEXT_OUTPUT_FILE_NAME"
+
+    if [ ! -s "$TEXT_OUTPUT_FILE_NAME" ]; then
+        log_message "WARNING: No text was recognized in the screenshot, skipping clipboard copy"
+        rm -f "$TEXT_OUTPUT_FILE_NAME"
+        return 0
+    fi
+
+    local status=0
+    if [ "${XDG_SESSION_TYPE:-}" = "wayland" ]; then
+        copy_to_wayland_clipboard || status=$?
+    else
+        copy_to_x11_clipboard || status=$?
+    fi
+
+    rm -f "$TEXT_OUTPUT_FILE_NAME"
+
+    if [ "$status" -ne 0 ]; then
+        log_message "ERROR: Failed to copy the extracted text to the clipboard (exit code $status)"
+        exit 1
+    fi
+
     log_message "The extracted text has been copied to the clipboard."
 }
 
 # Remove the screenshot if the -r option is passed.
 remove_image() {
     if [ "$REMOVE_SCREENSHOT" = true ]; then
-        rm "$SCREENSHOT_DIRECTORY/$SCREENSHOT_NAME"
-        log_message "Screenshot $SCREENSHOT_NAME has been deleted since you passed the -l option."
+        rm -f "$SCREENSHOT_DIRECTORY/$SCREENSHOT_NAME"
+        log_message "Screenshot $SCREENSHOT_NAME has been deleted since you passed the -r option."
     fi
 }
 
